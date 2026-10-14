@@ -4,6 +4,35 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d", { alpha: true });
 const $ = (id) => document.getElementById(id);
 
+const BALANCE = {
+  baseFireInterval: 240,
+  minFireInterval: 68,
+  resistancePerLevel: 10,
+  baseMoveSpeed: 390,
+  upgradeCosts: { base: 100, growth: 1.6 },
+  cardsLifetime: 10,
+};
+
+function playTone(freq = 440, duration = 0.04, volume = 0.03, type = "sine") {
+  try {
+    audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      audioCtx.currentTime + duration,
+    );
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch {
+    /* áudio opcional */
+  }
+}
+
 function viewport() {
   return { w: canvas.clientWidth, h: canvas.clientHeight };
 }
@@ -56,12 +85,12 @@ const ASSETS = {
     volcanic: "assets/asteroid_special/asteroid_volcanic.png",
   },
   bosses: {
-    cyber: "assets/asteroid_special/asteroid_ciber.png",
-    gravity: "assets/asteroid_special/asteroid_gravity.png",
-    gravityAura: "assets/asteroid_special/asteroid_gravity_aurea.png",
-    resistance: "assets/asteroid_special/asteroid_resistence.png",
-    thorny: "assets/asteroid_special/asteroid_thorny.png",
-    thornySpike: "assets/asteroid_special/asteroid_thorny_spikes.png",
+    cyber: "assets/asteroid_special/boss/asteroid_ciber.png",
+    gravity: "assets/asteroid_special/boss/asteroid_gravity.png",
+    gravityAura: "assets/asteroid_special/boss/asteroid_gravity_aurea.png",
+    resistance: "assets/asteroid_special/boss/asteroid_resistence.png",
+    thorny: "assets/asteroid_special/boss/asteroid_thorny.png",
+    thornySpike: "assets/asteroid_special/boss/asteroid_thorny_spikes.png",
   },
   ships: Array.from(
     { length: 4 },
