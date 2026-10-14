@@ -3,6 +3,14 @@
 class Player {
   #keys = new Set();
   #launch = {};
+  #isShooting = false;
+  #lastShotTime = 0;
+  #FIRE_RATE = Math.max(
+    BALANCE.minFireInterval,
+    Math.round(
+      BALANCE.baseFireInterval * Math.pow(0.89, SAVE.upgrades_level.fireRate),
+    ),
+  );
 
   constructor() {
     const { w, h } = viewport();
@@ -16,10 +24,11 @@ class Player {
     this.invuln = 0;
 
     window.addEventListener("keydown", (event) => {
+      event.preventDefault();
       const key = event.key.toLowerCase();
 
       if (
-        ![
+        [
           "arrowup",
           "arrowdown",
           "arrowleft",
@@ -28,21 +37,33 @@ class Player {
           "w",
           "s",
           "d",
-          // " ",
-          // "space",
+          "enter",
+          " ",
         ].includes(key)
       )
-        return;
-      event.preventDefault();
-      this.#keys.add(key);
+        this.#keys.add(key);
     });
-
-    window.addEventListener("keyup", (event) => {
-      this.#keys.delete(event.key.toLowerCase());
+    window.addEventListener("keyup", (event) =>
+      this.#keys.delete(event.key.toLowerCase()),
+    );
+    let shootInterval = null;
+    window.addEventListener(
+      "mousedown",
+      (e) => (this.#isShooting = e.button === 0),
+    );
+    window.addEventListener("mouseup", _ => (this.#isShooting = false));
+    window.addEventListener("blur", (_) => {
+      this.#keys = new Set();
+      this.#isShooting = false;
     });
   }
 
   update(dt) {
+    // Tiro da nave
+    if (this.#keys.has("enter") || this.#isShooting) 
+      this.shoot();
+
+    // Movimentação da nave
     const { w, h } = viewport();
     const speed = stats.moveSpeed();
     let dx = 0;
@@ -148,6 +169,26 @@ class Player {
       startScale: clamp(pose.size / Math.max(1, this.height), 1.15, 2.1),
       endY: h - 90,
     };
+  }
+
+  shoot() {
+    const now = performance.now();
+
+    if (now - this.#lastShotTime >= this.#FIRE_RATE) {
+      this.#lastShotTime = now;
+      // const interval = stats.fireInterval();
+      // if (now - state.lastShot < interval) return;
+      // state.lastShot = now;
+
+      console.log("Player shoot!");
+      bullets.push(new Bullet(player.x, player.y - 29, 0));
+
+      // Tiro Triplo
+      // bullets.push(new Bullet(player.x - 9, player.y - 25, -105));
+      // bullets.push(new Bullet(player.x, player.y - 31, 0));
+      // bullets.push(new Bullet(player.x + 9, player.y - 25, 105));
+      playTone(560, 0.035, 0.018, "square");
+    }
   }
 }
 
