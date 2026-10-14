@@ -6,7 +6,10 @@ class Bullet {
     this.vy = -770;
     this.radius = 3.5;
     this.dead = false;
-    this.damage = stats.damage();
+    this.damage = Math.max(
+      0,
+      1 + SAVE.upgrades_level.damage //+ effectDamageBonus() - effectDamagePenalty(),
+    );
   }
 
   update(dt) {

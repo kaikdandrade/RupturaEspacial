@@ -173,14 +173,8 @@ class Player {
 
   shoot() {
     const now = performance.now();
-
     if (now - this.#lastShotTime >= this.#FIRE_RATE) {
       this.#lastShotTime = now;
-      // const interval = stats.fireInterval();
-      // if (now - state.lastShot < interval) return;
-      // state.lastShot = now;
-
-      console.log("Player shoot!");
       bullets.push(new Bullet(player.x, player.y - 29, 0));
 
       // Tiro Triplo
