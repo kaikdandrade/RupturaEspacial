@@ -1,6 +1,7 @@
 "use strict";
 
-class Player {
+class PlayerShip {
+  #skinIndex = SAVE.selectedShip;
   #keys = new Set();
   #launch = {};
   #isShooting = false;
@@ -11,6 +12,18 @@ class Player {
       BALANCE.baseFireInterval * Math.pow(0.89, SAVE.upgrades_level.fireRate),
     ),
   );
+  #ACTION_KEYS = [
+    "arrowup",
+    "arrowdown",
+    "arrowleft",
+    "arrowright",
+    "a",
+    "w",
+    "s",
+    "d",
+    "enter",
+    " ",
+  ];
 
   constructor() {
     const { w, h } = viewport();
@@ -19,39 +32,20 @@ class Player {
     this.radius = 21;
     this.width = 66;
     this.height = 66;
-    this.image = loadImage(ASSETS.ships[SAVE.selectedShip]);
+    this.image = loadImage(ASSETS.ships[this.#skinIndex]);
     ((this.resistance = 0), (this.maxResistance = this.resistance));
     this.invuln = 0;
 
     window.addEventListener("keydown", (event) => {
-      event.preventDefault();
       const key = event.key.toLowerCase();
-
-      if (
-        [
-          "arrowup",
-          "arrowdown",
-          "arrowleft",
-          "arrowright",
-          "a",
-          "w",
-          "s",
-          "d",
-          "enter",
-          " ",
-        ].includes(key)
-      )
+      if (this.#ACTION_KEYS.includes(key)) {
         this.#keys.add(key);
+        event.preventDefault();
+      }
     });
-    window.addEventListener("keyup", (event) =>
-      this.#keys.delete(event.key.toLowerCase()),
-    );
-    let shootInterval = null;
-    window.addEventListener(
-      "mousedown",
-      (e) => (this.#isShooting = e.button === 0),
-    );
-    window.addEventListener("mouseup", _ => (this.#isShooting = false));
+    window.addEventListener("keyup", (event) => this.#keys.delete(event.key.toLowerCase()));
+    window.addEventListener("mousedown", (e) => this.#isShooting = e.button === 0);
+    window.addEventListener("mouseup", (_) => this.#isShooting = false);
     window.addEventListener("blur", (_) => {
       this.#keys = new Set();
       this.#isShooting = false;
@@ -60,8 +54,7 @@ class Player {
 
   update(dt) {
     // Tiro da nave
-    if (this.#keys.has("enter") || this.#isShooting) 
-      this.shoot();
+    if ((this.#keys.has("enter") || this.#keys.has(" ")) || this.#isShooting) this.shoot();
 
     // Movimentação da nave
     const { w, h } = viewport();
@@ -166,9 +159,14 @@ class Player {
       duration: duration,
       startX: pose.x,
       startY: pose.y,
-      startScale: clamp(pose.size / Math.max(1, this.height), 1.15, 2.1),
+      startScale: 1.1,
       endY: h - 90,
     };
+  }
+
+  setShipSkin(index) {
+    this.#skinIndex = index;
+    this.image = loadImage(ASSETS.ships[this.#skinIndex]);
   }
 
   shoot() {
@@ -186,4 +184,4 @@ class Player {
   }
 }
 
-const player = new Player();
+const player = new PlayerShip();
