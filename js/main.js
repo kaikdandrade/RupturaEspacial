@@ -17,6 +17,8 @@ const prevShipButton = $('prev-ship-button');
 const prevLevelButton = $("prev-level-button");
 const nextLevelButton = $("next-level-button");
 const levelLabel = $("level-info");
+const rankingButton = $("ranking-button");
+const helpButton = $("help-button");
 // const BOSS_ORDER = ["resistance", "gravity", "thorny", "cyber"];
 
 // function upgradeCost(type) {
@@ -342,9 +344,8 @@ document.addEventListener("keyup", (event) => {
   }
 });
 window.addEventListener("blur", () => {
-  if (state.mode === "playing") {
+  if (state.mode === "playing") 
     pauseGame();
-  }
 });
 
 // ----------------------------------------------------
@@ -404,7 +405,8 @@ prevLevelButton.addEventListener("click", () => changeSelectorLevel(-1));
 nextLevelButton.addEventListener("click", () => changeSelectorLevel(1));
 
 
-// $("helpButton").addEventListener("click", () => showScreen("helpScreen"));
+rankingButton.addEventListener("click", () => showModal("ranking"));
+helpButton.addEventListener("click", () => showModal("help"));
 // $("pauseButton").addEventListener("click", () => togglePause(true));
 // $("resumeButton").addEventListener("click", () => togglePause(false));
 // $("quitButton").addEventListener("click", quitRun);
