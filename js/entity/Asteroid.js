@@ -1,5 +1,8 @@
 "use strict";
 
+// ============================================================================
+// CLASSE BASE: Asteroid
+// ============================================================================
 class Asteroid {
   constructor({
     x,
@@ -32,63 +35,57 @@ class Asteroid {
     this.age = 0;
     this.entryDelay = Math.max(0, entryDelay);
     this.enteredArena = y >= 78 + this.radius;
+
     const launchAngle = random(Math.PI * 0.22, Math.PI * 0.78);
     this.vx = Math.cos(launchAngle) * this.speed * random(0.68, 1.02);
     this.vy = Math.sin(launchAngle) * this.speed * random(0.82, 1.08);
+
     this.burnTicks = 0;
     this.nextBurn = 0;
-    this.thornTimer = boss ? 0.7 : 1;
-    this.cyberTimer = boss ? random(0.9, 1.35) : random(2.1, 3.0);
-    this.cyberCharge = 0;
-    this.cyberAim = 0;
     this.orbitHost = null;
     this.orbitAngle = 0;
     this.orbitRadius = 0;
     this.orbitSpeed = 0;
     this.gravityCaptureTimer = boss ? 1.2 : 1.8;
-    this.image = this.resolveImage();
 
     this.armor = 0;
     this.maxArmor = 0;
-    if (this.type === "resistance") {
-      const armorFactor = this.boss ? 1.35 : 0.9;
-      this.maxArmor = Math.max(2, Math.ceil(this.maxHp * armorFactor));
-      this.armor = this.maxArmor;
-      this.size *= this.boss ? 1.28 : 1.06;
-      this.radius = this.size * 0.39;
-    }
 
-    if (this.type === "fractionalSlice") {
-      this.size *= 0.58;
-      this.radius = this.size * 0.34;
-    }
+    this.image = this.resolveImage();
+  }
 
-    if (this.type === "cyber") {
-      this.size *= this.boss ? 1.34 : 1.05;
-      this.radius = this.size * 0.36;
-    }
-
-    if (this.type === "gravity" && this.boss) {
-      this.size *= 1.34;
-      this.radius = this.size * 0.38;
-    }
-
-    if (this.type === "thorny" && this.boss) {
-      this.size *= 1.3;
-      this.radius = this.size * 0.38;
+  // Factory Method para instanciar a subclasse correta dinamicamente
+  static create(config) {
+    switch (config.type) {
+      case "resistance":
+        return new ResistanceAsteroid(config);
+      case "fractionalSlice":
+        return new FractionalSliceAsteroid(config);
+      case "fractional":
+        return new FractionalAsteroid(config);
+      case "cyber":
+        return new CyberAsteroid(config);
+      case "gravity":
+        return new GravityAsteroid(config);
+      case "thorny":
+        return new ThornyAsteroid(config);
+      case "frozen":
+        return new FrozenAsteroid(config);
+      case "mystic":
+        return new MysticAsteroid(config);
+      case "volcanic":
+        return new VolcanicAsteroid(config);
+      case "common":
+      default:
+        return new CommonAsteroid(config);
     }
   }
 
   resolveImage() {
-    if (this.type === "common")
-      return loadImage(
-        ASSETS.common[Math.floor(Math.random() * ASSETS.common.length)],
-      );
-    if (this.type === "fractionalSlice")
-      return loadImage(ASSETS.special.fractionalSlice);
     return loadImage(ASSETS.special[this.type] || ASSETS.common[0]);
   }
 
+  // --- Sistema de Queimadura (Burn) ---
   applyBurn(ticks = 5) {
     this.burnTicks = Math.max(this.burnTicks, ticks);
     this.nextBurn = Math.min(this.nextBurn || state.time, state.time + 0.06);
@@ -99,7 +96,7 @@ class Asteroid {
     this.burnTicks--;
     this.nextBurn = state.time + 0.52;
     this.hit(1, "burn");
-    if (!this.dead)
+    if (!this.dead) {
       burst(
         this.x + random(-10, 10),
         this.y + random(-10, 10),
@@ -107,17 +104,10 @@ class Asteroid {
         5,
         55,
       );
+    }
   }
 
-  gravityShieldCount() {
-    if (this.type !== "gravity") return 0;
-    return asteroids.reduce(
-      (sum, candidate) =>
-        sum + (!candidate.dead && candidate.orbitHost === this ? 1 : 0),
-      0,
-    );
-  }
-
+  // --- Sistema de Órbita ---
   updateOrbit(dt) {
     if (!this.orbitHost || this.orbitHost.dead) {
       if (this.orbitHost?.dead) releaseFromGravityOrbit(this);
@@ -130,9 +120,14 @@ class Asteroid {
     return true;
   }
 
+  // --- Movimentação e Arena ---
+  getShieldPadding() {
+    return 0;
+  }
+
   applyArenaSteering(dt, movementFactor = 1) {
     const { w, h } = viewport();
-    const shieldPadding = this.boss && this.type === "gravity" ? 82 : 0;
+    const shieldPadding = this.getShieldPadding();
     const top = 82 + this.radius + shieldPadding;
     const bottom = h - 14 - this.radius - shieldPadding;
     const left = 10 + this.radius + shieldPadding;
@@ -151,17 +146,8 @@ class Asteroid {
     if (dtp < band) ay += (1 - dtp / band) * turnForce;
     if (db < band) ay -= (1 - db / band) * turnForce;
 
-    // Gravity boss persegue o jogador, mas continua preso ao campo orbital.
-    if (this.boss && this.type === "gravity" && player) {
-      const dx = player.x - this.x;
-      const dy = player.y - this.y;
-      const d = Math.hypot(dx, dy) || 1;
-      ax += (dx / d) * 92;
-      ay += (dy / d) * 92;
-    }
-
-    this.vx += ax * dt;
-    this.vy += ay * dt;
+    // Hook para direcionamento customizado (ex: perseguição do Boss Gravity)
+    this.applyCustomSteering(ax, ay, dt);
 
     const current = Math.hypot(this.vx, this.vy) || 1;
     const desired = this.speed * (this.boss ? 0.86 : 1);
@@ -172,7 +158,7 @@ class Asteroid {
     this.x += this.vx * dt * movementFactor;
     this.y += this.vy * dt * movementFactor;
 
-    // Segurança contra escapes num frame muito rápido. O retorno é suave; não há ricochete seco.
+    // Segurança contra limites
     if (this.x < left - 12) {
       this.x = left - 12;
       this.vx = Math.abs(this.vx) * 0.55;
@@ -191,6 +177,11 @@ class Asteroid {
     }
   }
 
+  applyCustomSteering(ax, ay, dt) {
+    // Sobrescrever nas subclasses se necessário
+  }
+
+  // --- Loop de Atualização ---
   update(dt) {
     if (this.dead) return;
     this.age += dt;
@@ -207,41 +198,8 @@ class Asteroid {
 
     const slow = asteroidSpeedFactor();
 
-    if (this.type === "cyber" && player) {
-      const aim = Math.atan2(player.y - this.y, player.x - this.x);
-      this.rotation = aim + Math.PI / 2;
-      this.cyberAim = aim;
-      if (this.cyberCharge > 0) {
-        this.cyberCharge -= dt;
-        if (this.cyberCharge <= 0) {
-          const ox = Math.cos(this.cyberAim) * this.radius * 0.72;
-          const oy = Math.sin(this.cyberAim) * this.radius * 0.72;
-          enemyProjectiles.push(
-            new CyberOrbProjectile(
-              this.x + ox,
-              this.y + oy,
-              this.cyberAim,
-              this.boss,
-            ),
-          );
-          this.cyberTimer = this.boss ? random(0.95, 1.45) : random(2.3, 3.2);
-          playTone(this.boss ? 320 : 270, 0.12, 0.025, "sine");
-        }
-      } else {
-        this.cyberTimer -= dt;
-        if (this.cyberTimer <= 0) this.cyberCharge = this.boss ? 0.38 : 0.7;
-      }
-    } else {
-      this.rotation += this.rotationSpeed * dt;
-    }
-
-    if (this.type === "thorny") {
-      this.thornTimer -= dt;
-      if (this.thornTimer <= 0) {
-        this.thornTimer += this.boss ? 0.7 : 1;
-        fireThornSpike(this);
-      }
-    }
+    // Hook para comportamentos específicos durante o update
+    this.updateBehavior(dt, slow);
 
     if (!this.enteredArena) {
       this.y += this.speed * 1.12 * dt * slow;
@@ -253,17 +211,16 @@ class Asteroid {
     this.applyArenaSteering(dt, slow);
   }
 
+  updateBehavior(dt, slow) {
+    this.rotation += this.rotationSpeed * dt;
+  }
+
+  // --- Dano e Destruição ---
   hit(damage, source = "shot") {
     if (this.dead) return;
     const amount = Math.max(0, Math.round(damage));
     if (amount <= 0) {
       burst(this.x, this.y, "#7d879f", 3, 45);
-      return;
-    }
-
-    if (this.type === "gravity" && this.gravityShieldCount() > 0) {
-      burst(this.x, this.y, "#ad8cff", 7, 70);
-      playTone(205, 0.045, 0.012, "sine");
       return;
     }
 
@@ -307,8 +264,9 @@ class Asteroid {
 
     if (this.orbitHost) this.orbitHost = null;
     for (const satellite of asteroids) {
-      if (!satellite.dead && satellite.orbitHost === this)
+      if (!satellite.dead && satellite.orbitHost === this) {
         releaseFromGravityOrbit(satellite);
+      }
     }
 
     if (this.isPrimary && !this.child && !this.boss) state.kills++;
@@ -361,33 +319,10 @@ class Asteroid {
   }
 
   onPlayerDestroyed() {
-    if (this.type === "fractional" && !this.child) spawnFractionalSlices(this);
-    if (this.type === "frozen")
-      pickups.push(new PickupCard(this.x, this.y, "frozen"));
-    if (this.type === "mystic")
-      pickups.push(new PickupCard(this.x, this.y, "mystic"));
-    if (this.type === "volcanic")
-      pickups.push(new PickupCard(this.x, this.y, "volcanic"));
-    if (this.type === "thorny") releaseThornBurst(this, this.boss ? 5 : null);
+    // Sobrescrever nas subclasses para drops/efeitos de morte
   }
 
-  drawGravityLinks() {
-    if (this.type !== "gravity") return;
-    const satellites = asteroids.filter((a) => !a.dead && a.orbitHost === this);
-    if (!satellites.length) return;
-    ctx.save();
-    ctx.strokeStyle = "rgba(176, 126, 255, .36)";
-    ctx.lineWidth = 1.7;
-    ctx.setLineDash([5, 6]);
-    for (const sat of satellites) {
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(sat.x - this.x, sat.y - this.y);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
+  // --- Renderização ---
   draw() {
     if (this.dead) return;
     ctx.save();
@@ -405,16 +340,7 @@ class Asteroid {
       ctx.restore();
     }
 
-    if (this.type === "gravity") {
-      this.drawGravityLinks();
-      const aura = loadImage(ASSETS.special.gravityAura);
-      ctx.save();
-      ctx.globalAlpha = this.gravityShieldCount() ? 0.88 : 0.48;
-      ctx.rotate(-this.age * 0.22);
-      const auraSize = this.size * (this.boss ? 2.0 : 1.65);
-      drawSprite(aura, -auraSize / 2, -auraSize / 2, auraSize, auraSize);
-      ctx.restore();
-    }
+    this.drawSpecialAuras();
 
     if (this.burnTicks > 0) {
       ctx.save();
@@ -431,13 +357,8 @@ class Asteroid {
 
     ctx.save();
     ctx.rotate(this.rotation);
-    ctx.shadowColor =
-      this.type === "cyber"
-        ? "rgba(57,171,255,.48)"
-        : this.boss
-          ? "rgba(255,213,118,.34)"
-          : "rgba(0,0,0,.24)";
-    ctx.shadowBlur = this.boss ? 20 : this.type === "cyber" ? 16 : 8;
+    this.applySpriteShadow();
+
     if (
       !drawSprite(
         this.image,
@@ -454,23 +375,7 @@ class Asteroid {
     }
     ctx.restore();
 
-    if (this.type === "cyber" && this.cyberCharge > 0) {
-      const duration = this.boss ? 0.38 : 0.7;
-      const progress = 1 - this.cyberCharge / duration;
-      const d = this.radius * 0.78;
-      const ox = Math.cos(this.cyberAim) * d;
-      const oy = Math.sin(this.cyberAim) * d;
-      ctx.save();
-      ctx.translate(ox, oy);
-      ctx.globalAlpha = 0.55 + progress * 0.45;
-      ctx.fillStyle = "#8deeff";
-      ctx.shadowColor = "#35adff";
-      ctx.shadowBlur = this.boss ? 25 : 18;
-      ctx.beginPath();
-      ctx.arc(0, 0, 4 + progress * (this.boss ? 9 : 6), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
+    this.drawSpecialOverlay();
 
     if (this.armor > 0) {
       ctx.save();
@@ -492,5 +397,263 @@ class Asteroid {
 
     drawAsteroidCounter(this);
     ctx.restore();
+  }
+
+  applySpriteShadow() {
+    ctx.shadowColor = this.boss ? "rgba(255,213,118,.34)" : "rgba(0,0,0,.24)";
+    ctx.shadowBlur = this.boss ? 20 : 8;
+  }
+
+  drawSpecialAuras() {}
+  drawSpecialOverlay() {}
+}
+
+// ============================================================================
+// SUBCLASSES DE ASTEROIDES
+// ============================================================================
+
+// 1. Common Asteroid
+class CommonAsteroid extends Asteroid {
+  constructor(config) {
+    super({ ...config, type: "common" });
+  }
+
+  resolveImage() {
+    return loadImage(
+      ASSETS.common[Math.floor(Math.random() * ASSETS.common.length)],
+    );
+  }
+}
+
+// 2. Resistance Asteroid (Com Armadura)
+class ResistanceAsteroid extends Asteroid {
+  constructor(config) {
+    super({ ...config, type: "resistance" });
+    const armorFactor = this.boss ? 1.35 : 0.9;
+    this.maxArmor = Math.max(2, Math.ceil(this.maxHp * armorFactor));
+    this.armor = this.maxArmor;
+    this.size *= this.boss ? 1.28 : 1.06;
+    this.radius = this.size * 0.39;
+  }
+}
+
+// 3. Fractional Slice Asteroid (Fragmento)
+class FractionalSliceAsteroid extends Asteroid {
+  constructor(config) {
+    super({ ...config, type: "fractionalSlice" });
+    this.size *= 0.58;
+    this.radius = this.size * 0.34;
+  }
+
+  resolveImage() {
+    return loadImage(ASSETS.special.fractionalSlice);
+  }
+}
+
+// 4. Fractional Asteroid (Divide ao morrer)
+class FractionalAsteroid extends Asteroid {
+  constructor(config) {
+    super({ ...config, type: "fractional" });
+  }
+
+  onPlayerDestroyed() {
+    if (!this.child) spawnFractionalSlices(this);
+  }
+}
+
+// 5. Cyber Asteroid (Mira e dispara projéteis)
+class CyberAsteroid extends Asteroid {
+  constructor(config) {
+    super({ ...config, type: "cyber" });
+    this.size *= this.boss ? 1.34 : 1.05;
+    this.radius = this.size * 0.36;
+    this.cyberTimer = this.boss ? random(0.9, 1.35) : random(2.1, 3.0);
+    this.cyberCharge = 0;
+    this.cyberAim = 0;
+  }
+
+  updateBehavior(dt, slow) {
+    if (!player) {
+      this.rotation += this.rotationSpeed * dt;
+      return;
+    }
+
+    const aim = Math.atan2(player.y - this.y, player.x - this.x);
+    this.rotation = aim + Math.PI / 2;
+    this.cyberAim = aim;
+
+    if (this.cyberCharge > 0) {
+      this.cyberCharge -= dt;
+      if (this.cyberCharge <= 0) {
+        const ox = Math.cos(this.cyberAim) * this.radius * 0.72;
+        const oy = Math.sin(this.cyberAim) * this.radius * 0.72;
+        enemyProjectiles.push(
+          new CyberOrbProjectile(
+            this.x + ox,
+            this.y + oy,
+            this.cyberAim,
+            this.boss,
+          ),
+        );
+        this.cyberTimer = this.boss ? random(0.95, 1.45) : random(2.3, 3.2);
+        playTone(this.boss ? 320 : 270, 0.12, 0.025, "sine");
+      }
+    } else {
+      this.cyberTimer -= dt;
+      if (this.cyberTimer <= 0) this.cyberCharge = this.boss ? 0.38 : 0.7;
+    }
+  }
+
+  applySpriteShadow() {
+    ctx.shadowColor = "rgba(57,171,255,.48)";
+    ctx.shadowBlur = this.boss ? 20 : 16;
+  }
+
+  drawSpecialOverlay() {
+    if (this.cyberCharge > 0) {
+      const duration = this.boss ? 0.38 : 0.7;
+      const progress = 1 - this.cyberCharge / duration;
+      const d = this.radius * 0.78;
+      const ox = Math.cos(this.cyberAim) * d;
+      const oy = Math.sin(this.cyberAim) * d;
+      ctx.save();
+      ctx.translate(ox, oy);
+      ctx.globalAlpha = 0.55 + progress * 0.45;
+      ctx.fillStyle = "#8deeff";
+      ctx.shadowColor = "#35adff";
+      ctx.shadowBlur = this.boss ? 25 : 18;
+      ctx.beginPath();
+      ctx.arc(0, 0, 4 + progress * (this.boss ? 9 : 6), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+// 6. Gravity Asteroid (Possui campo de força e satélites orbita)
+class GravityAsteroid extends Asteroid {
+  constructor(config) {
+    super({ ...config, type: "gravity" });
+    if (this.boss) {
+      this.size *= 1.34;
+      this.radius = this.size * 0.38;
+    }
+  }
+
+  gravityShieldCount() {
+    return asteroids.reduce(
+      (sum, candidate) =>
+        sum + (!candidate.dead && candidate.orbitHost === this ? 1 : 0),
+      0,
+    );
+  }
+
+  getShieldPadding() {
+    return this.boss ? 82 : 0;
+  }
+
+  applyCustomSteering(ax, ay, dt) {
+    if (this.boss && player) {
+      const dx = player.x - this.x;
+      const dy = player.y - this.y;
+      const d = Math.hypot(dx, dy) || 1;
+      this.vx += (dx / d) * 92 * dt;
+      this.vy += (dy / d) * 92 * dt;
+    }
+  }
+
+  hit(damage, source = "shot") {
+    if (this.dead) return;
+    if (this.gravityShieldCount() > 0) {
+      burst(this.x, this.y, "#ad8cff", 7, 70);
+      playTone(205, 0.045, 0.012, "sine");
+      return;
+    }
+    super.hit(damage, source);
+  }
+
+  drawGravityLinks() {
+    const satellites = asteroids.filter((a) => !a.dead && a.orbitHost === this);
+    if (!satellites.length) return;
+    ctx.save();
+    ctx.strokeStyle = "rgba(176, 126, 255, .36)";
+    ctx.lineWidth = 1.7;
+    ctx.setLineDash([5, 6]);
+    for (const sat of satellites) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(sat.x - this.x, sat.y - this.y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  drawSpecialAuras() {
+    this.drawGravityLinks();
+    const aura = loadImage(ASSETS.special.gravityAura);
+    ctx.save();
+    ctx.globalAlpha = this.gravityShieldCount() ? 0.88 : 0.48;
+    ctx.rotate(-this.age * 0.22);
+    const auraSize = this.size * (this.boss ? 2.0 : 1.65);
+    drawSprite(aura, -auraSize / 2, -auraSize / 2, auraSize, auraSize);
+    ctx.restore();
+  }
+}
+
+// 7. Thorny Asteroid (Dispara espinhos periodicamente e na morte)
+class ThornyAsteroid extends Asteroid {
+  constructor(config) {
+    super({ ...config, type: "thorny" });
+    if (this.boss) {
+      this.size *= 1.3;
+      this.radius = this.size * 0.38;
+    }
+    this.thornTimer = this.boss ? 0.7 : 1;
+  }
+
+  updateBehavior(dt, slow) {
+    this.rotation += this.rotationSpeed * dt;
+    this.thornTimer -= dt;
+    if (this.thornTimer <= 0) {
+      this.thornTimer += this.boss ? 0.7 : 1;
+      fireThornSpike(this);
+    }
+  }
+
+  onPlayerDestroyed() {
+    releaseThornBurst(this, this.boss ? 5 : null);
+  }
+}
+
+// 8. Frozen Asteroid (Dropa item frozen)
+class FrozenAsteroid extends Asteroid {
+  constructor(config) {
+    super({ ...config, type: "frozen" });
+  }
+
+  onPlayerDestroyed() {
+    pickups.push(new PickupCard(this.x, this.y, "frozen"));
+  }
+}
+
+// 9. Mystic Asteroid (Dropa item mystic)
+class MysticAsteroid extends Asteroid {
+  constructor(config) {
+    super({ ...config, type: "mystic" });
+  }
+
+  onPlayerDestroyed() {
+    pickups.push(new PickupCard(this.x, this.y, "mystic"));
+  }
+}
+
+// 10. Volcanic Asteroid (Dropa item volcanic)
+class VolcanicAsteroid extends Asteroid {
+  constructor(config) {
+    super({ ...config, type: "volcanic" });
+  }
+
+  onPlayerDestroyed() {
+    pickups.push(new PickupCard(this.x, this.y, "volcanic"));
   }
 }
