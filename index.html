@@ -1,214 +1,332 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#050817" />
-    <meta name="description"
-        content="Ruptura Espacial: limpe arenas orbitais, enfrente asteroids de outro mundo e evolua sua nave." />
-    <title>Ruptura Espacial</title>
-    <link rel="icon" href="assets/favicon.ico" />
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#050817" />
+  <meta name="description"
+    content="Ruptura Espacial: limpe arenas orbitais, enfrente asteroids de outro mundo e evolua sua nave." />
+  <title>Ruptura Espacial</title>
+  <link rel="icon" href="assets/favicon.ico" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-    <main id="app" aria-label="Ruptura Espacial">
-        <canvas id="gameCanvas" aria-label="Área do jogo"></canvas>
+  <main id="app" aria-label="Ruptura Espacial">
+    <canvas id="gameCanvas" aria-label="Área do jogo"></canvas>
 
-        <!-- Interface principal -->
-        <section id="mainMenu" class="screen active" aria-label="Tela principal">
-            <header class="topbar">
-                <div class="brand" aria-label="Ruptura Espacial">
-                    <img src="assets/favicon.ico" alt="Ícone do jogo" class="brand-img" />
-                    <h1 class="title">RUPTURA <span class="cyan">ESPACIAL</span></h1>
-                </div>
+    <!-- Interface principal -->
+    <section id="mainMenu" class="screen active" aria-label="Tela principal">
+      <header class="topbar">
+        <div class="brand" aria-label="Ruptura Espacial">
+          <img src="assets/favicon.ico" alt="Ícone do jogo" class="brand-img" />
+          <h1 class="title">RUPTURA <span class="cyan">ESPACIAL</span></h1>
+        </div>
 
-                <div class="hub">
-                    <div class="hub-progress">
-                        <span>RECORDE</span><strong id="bestScore">0</strong>
-                    </div>
-                    <div class="hub-progress">
-                        <span>NÍVEL MÁX.</span><strong id="highestLevel">1</strong>
-                    </div>
-                    <button id="rankingButton" class="hub-button" type="button"
-                        aria-label="Botão abrir Tabela de classificação">
-                        <img src="assets/icons/ranking.png" alt="Icone da tabela de classificação" class="icon" />
-                    </button>
-                    <button id="helpButton" class="hub-button" type="button" aria-label="Botão abrir ajuda">
-                        <img src="assets/icons/help.png" alt="Icone de ajuda" class="icon" />
-                    </button>
-                </div>
-            </header>
+        <div class="hub">
+          <div class="hub-progress">
+            <span>RECORDE</span><strong id="best-score">0</strong>
+          </div>
+          <div class="hub-progress">
+            <span>NÍVEL MÁX.</span><strong id="highest-level">1</strong>
+          </div>
+          <button id="rankingButton" class="hub-button" type="button" aria-label="Botão abrir Tabela de classificação">
+            <img src="assets/icons/ranking.png" alt="Icone da tabela de classificação" class="icon" />
+          </button>
+          <button id="helpButton" class="hub-button" type="button" aria-label="Botão abrir ajuda">
+            <img src="assets/icons/help.png" alt="Icone de ajuda" class="icon" />
+          </button>
+        </div>
+      </header>
 
-            <div class="play-container">
-                <div class="level-selector" aria-label="Seleção de nível">
-                    <button id="prevLevelButton" class="arrow-button left" type="button" aria-label="Nível anterior">
-                        <img src="assets/icons/arrow_left.png" alt="Seta para esquerda" class="icon" />
-                    </button>
-                    <p class="level">
-                        <span>SETOR</span>
-                        <strong id="level_info">1 DISPONÍVEL</strong>
-                    </p>
-                    <button id="nextLevelButton" class="arrow-button right" type="button" aria-label="Próximo nível">
-                        <img src="assets/icons/arrow_right.png" alt="Seta para direita" class="icon" />
-                    </button>
-                </div>
-                <div class="ship-selector">
-                    <button id="nextShipButton" class="arrow-button left" type="button" aria-label="Próxima nave">
-                        <img src="assets/icons/arrow_left.png" alt="Seta para esquerda" class="icon" />
-                    </button>
+      <div class="play-container">
+        <div class="level-selector" aria-label="Seleção de nível">
+          <button id="prev-level-button" class="arrow-button left" type="button" aria-label="Nível anterior">
+            <img src="assets/icons/arrow_left.png" alt="Seta para esquerda" class="icon" />
+          </button>
+          <p class="level">
+            <span>SETOR</span>
+            <strong id="level-info">1 DISPONÍVEL</strong>
+          </p>
+          <button id="next-level-button" class="arrow-button right" type="button" aria-label="Próximo nível">
+            <img src="assets/icons/arrow_right.png" alt="Seta para direita" class="icon" />
+          </button>
+        </div>
 
-                    <button id="playShipButton" class="play-ship-button" type="button"
-                        aria-label="Jogar com a nave selecionada">
-                        <span class="ship-orbit" id="ship-orbit--one"></span>
-                        <span class="ship-orbit" id="ship-orbit--two"></span>
-                        <span class="ship-glow"></span>
+        <div class="ship-selector">
+          <button id="prev-ship-button" class="arrow-button right" type="button" aria-label="Nave anterior">
+            <img src="assets/icons/arrow_left.png" alt="Seta para direita" class="icon" />
+          </button>
 
-                        <div class="ship-preview-container">
-                            <img id="shipPreview" class="ship-preview" src="assets/spaceship/spaceship_1.png"
-                                alt="Nave selecionada" />
-                        </div>
+          <button id="play-ship-button" class="play-ship-button" type="button"
+            aria-label="Jogar com a nave selecionada">
+            <span class="ship-orbit" id="ship-orbit--one"></span>
+            <span class="ship-orbit" id="ship-orbit--two"></span>
+            <span class="ship-glow"></span>
 
-                        <span class="play-pill">JOGAR</span>
-                    </button>
-
-                    <button id="prevShipButton" class="arrow-button right" type="button" aria-label="Nave anterior">
-                        <img src="assets/icons/arrow_right.png" alt="Seta para direita" class="icon" />
-                    </button>
-                </div>
+            <div class="ship-preview-container">
+              <img id="ship-preview" class="ship-preview" src="assets/spaceship/spaceship_1.png" alt="Nave selecionada"
+                name="Nave Alpha" />
             </div>
+          </button>
+          <button class="ship-button" id="ship-button">JOGAR</button>
 
-            <section class="upgrade-container" aria-label="Melhorias permanentes">
-                <div class="upgrade-heading">
-                    <img src="assets/icons/upgrades.png" alt="" class="heading-icon" />
-                    <div>
-                        <span class="heading-subtitle">HANGAR // SISTEMA DE APRIMORAMENTO</span>
-                        <h2 class="heading-title">OFICINA DE MELHORIAS</h2>
-                    </div>
+          <button id="next-ship-button" class="arrow-button left" type="button" aria-label="Próxima nave">
+            <img src="assets/icons/arrow_right.png" alt="Seta para esquerda" class="icon" />
+          </button>
+        </div>
+      </div>
 
-                    <div class="money-counter" title="Créditos disponíveis">
-                        <img src="assets/icons/sparks.png" alt="" class="money-icon" />
+      <section class="upgrade-container" aria-label="Melhorias permanentes">
+        <div class="upgrade-heading">
+          <img src="assets/icons/upgrades.png" alt="" class="heading-icon" />
+          <div>
+            <span class="heading-subtitle">HANGAR // SISTEMA DE APRIMORAMENTO</span>
+            <h2 class="heading-title">OFICINA DE MELHORIAS</h2>
+          </div>
 
-                        <div class="money-info">
-                            <small>CRÉDITOS</small>
-                            <strong id="counterCoins">0</strong>
-                        </div>
-                    </div>
-                </div>
+          <div class="money-counter" title="Créditos disponíveis">
+            <img src="assets/icons/sparks.png" alt="" class="money-icon" />
 
-                <div class="upgrade-strip" aria-label="Todas as melhorias">
-                    <!-- DANO -->
-                    <button class="upgrade" data-type="damage" type="button" aria-label="Melhoria de dano da nave">
-                        <div class="description">
-                            <div class="upgrade-icon">
-                                <img src="assets/icons/damage.png" alt="Dano" />
-                            </div>
-                            <div class="flex col">
-                                <strong>DANO</strong>
-                                <span id="damageValue">1</span>
-                            </div>
-                            <small class="upgrade-level">Nv. <span id="damageLevel">0</span></small>
-                        </div>
-                        <div class="upgrade-cost">
-                            <span class="cost-label">APRIMORAR</span>
-
-                            <div class="cost-value">
-                                <img src="assets/icons/sparks.png" alt="" />
-                                <strong id="damageCost">100</strong>
-                            </div>
-                        </div>
-                    </button>
-
-                    <!-- CADÊNCIA-->
-                    <button class="upgrade" data-type="fireRate" type="button"
-                        aria-label="Melhoria de cadência de tiro da nave">
-                        <div class="description">
-                            <div class="upgrade-icon">
-                                <img src="assets/icons/cadence.png" alt="" />
-                            </div>
-                            <div class="flex col">
-                                <strong>CADÊNCIA</strong>
-                                <span id="fireRateValue">340ms</span>
-                            </div>
-                            <small class="upgrade-level">Nv. <span id="fireRateLevel">0</span></small>
-                        </div>
-                        <div class="upgrade-cost">
-                            <span>APRIMORAR</span>
-
-                            <div class="cost-value">
-                                <img src="assets/icons/sparks.png" alt="" />
-                                <strong id="fireRateCost">100</strong>
-                            </div>
-                        </div>
-                    </button>
-
-                    <!-- RESISTÊNCIA -->
-                    <button class="upgrade" data-type="resistance" type="button"
-                        aria-label="Melhoria de resistência do casco da nave">
-                        <div class="description">
-                            <div class="upgrade-icon">
-                                <img src="assets/icons/resistance.png" alt="" />
-                            </div>
-                            <div class="flex col">
-                                <strong>RESISTÊNCIA</strong>
-                                <span id="resistanceValue">0</span>
-                            </div>
-                            <small class="upgrade-level">Nv. <span id="resistanceLevel">0</span></small>
-                        </div>
-                        <div class="upgrade-cost">
-                            <span>APRIMORAR</span>
-
-                            <div class="cost-value">
-                                <img src="assets/icons/sparks.png" alt="">
-                                <strong id="resistenceCost">100</strong>
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            </section>
-        </section>
-
-        <!-- HUD de partida -->
-        <section id="hud" class="screen" aria-label="Informações da fase">
-            <div class="hub-progress">
-                <span>SETOR</span><strong id="selectedLevel">1</strong>
+            <div class="money-label">
+              <small>CRÉDITOS</small>
+              <strong id="money-label">0</strong>
             </div>
-            <div class="hub-objective">
-                <span id="hubObjectiveLabel">RESTANTES</span>
-                <strong><b id="hubKills">0</b>/<b id="hubTarget">0</b></strong>
-                <div class="progress-track">
-                    <span id="levelProgressBar"></span>
-                </div>
-            </div>
-            <div class="hub-progress">
-                <span>PONTUAÇÃO</span><strong id="playScore">0</strong>
-            </div>
-            <button id="pauseButton" class="hub-button" type="button" aria-label="Pausar">Ⅱ</button>
-        </section>
+          </div>
+        </div>
 
-        <!-- MODAIS -->
-        <aside class="modals">
-            <section id="pause" class="modal glass" data-overlay="false" aria-label="Jogo pausado">
-                <span class="eyebrow">PAUSA</span>
-                <h2>Fase pausada</h2>
-                <button id="resumeButton" class="btn btn--primary" type="button">Continuar</button>
-                <button id="quitButton" class="btn" type="button">Voltar ao hangar</button>
-            </section>
-        </aside>
-    </main>
+        <div class="upgrade-strip" aria-label="Todas as melhorias">
+          <!-- DANO -->
+          <button class="upgrade" data-type="damage" type="button" aria-label="Melhoria de dano da nave">
+            <div class="description">
+              <div class="upgrade-icon">
+                <img src="assets/icons/damage.png" alt="Dano" />
+              </div>
+              <div class="flex col">
+                <strong>DANO</strong>
+                <span id="damageValue">1</span>
+              </div>
+              <small class="upgrade-level">Nv. <span id="damageLevel">0</span></small>
+            </div>
+            <div class="upgrade-cost">
+              <span class="cost-label">APRIMORAR</span>
 
-    <script src="js/core/utils.js"></script>
-    <script src="js/core/Data.js"></script>
-    <script src="js/core/Level.js"></script>
-    <script src="js/entity/Player.js"></script>
-    <script src="js/entity/Asteroid.js"></script>
-    <script src="js/projectile/Bullet.js"></script>
-    <script src="js/projectile/CyberOrb.js"></script>
-    <script src="js/projectile/ThornSpike.js"></script>
-    <script src="js/game.js"></script>
-    <script src="js/game_loop.js"></script>
-    <script src="js/main.js"></script>
+              <div class="cost-value">
+                <img src="assets/icons/sparks.png" alt="" />
+                <strong id="damageCost">100</strong>
+              </div>
+            </div>
+          </button>
+
+          <!-- CADÊNCIA-->
+          <button class="upgrade" data-type="fireRate" type="button" aria-label="Melhoria de cadência de tiro da nave">
+            <div class="description">
+              <div class="upgrade-icon">
+                <img src="assets/icons/cadence.png" alt="" />
+              </div>
+              <div class="flex col">
+                <strong>CADÊNCIA</strong>
+                <span id="fireRateValue">340ms</span>
+              </div>
+              <small class="upgrade-level">Nv. <span id="fireRateLevel">0</span></small>
+            </div>
+            <div class="upgrade-cost">
+              <span>APRIMORAR</span>
+
+              <div class="cost-value">
+                <img src="assets/icons/sparks.png" alt="" />
+                <strong id="fireRateCost">100</strong>
+              </div>
+            </div>
+          </button>
+
+          <!-- RESISTÊNCIA -->
+          <button class="upgrade" data-type="resistance" type="button"
+            aria-label="Melhoria de resistência do casco da nave">
+            <div class="description">
+              <div class="upgrade-icon">
+                <img src="assets/icons/resistance.png" alt="" />
+              </div>
+              <div class="flex col">
+                <strong>RESISTÊNCIA</strong>
+                <span id="resistanceValue">0</span>
+              </div>
+              <small class="upgrade-level">Nv. <span id="resistanceLevel">0</span></small>
+            </div>
+            <div class="upgrade-cost">
+              <span>APRIMORAR</span>
+
+              <div class="cost-value">
+                <img src="assets/icons/sparks.png" alt="" />
+                <strong id="resistenceCost">100</strong>
+              </div>
+            </div>
+          </button>
+        </div>
+      </section>
+    </section>
+
+    <!-- HUD de partida -->
+    <section id="hud" class="screen" aria-label="Informações da fase">
+      <div class="hub-progress">
+        <span>SETOR</span><strong id="selectedLevel">1</strong>
+      </div>
+      <div class="hub-objective">
+        <span id="hubObjectiveLabel">RESTANTES</span>
+        <strong><b id="hubKills">0</b>/<b id="hubTarget">0</b></strong>
+        <div class="progress-track">
+          <span id="levelProgressBar"></span>
+        </div>
+      </div>
+      <div class="hub-progress">
+        <span>PONTUAÇÃO</span><strong id="playScore">0</strong>
+      </div>
+      <button id="pauseButton" class="hub-button" type="button" aria-label="Pausar">
+        Ⅱ
+      </button>
+    </section>
+
+    <!-- Ajuda / Enciclopédia -->
+    <section id="helpScreen" class="screen overlay-screen" aria-label="Ajuda e asteroides especiais">
+      <div class="panel glass help-panel">
+        <header class="panel-header">
+          <div>
+            <span class="eyebrow">ARQUIVO DE AMEAÇAS</span>
+            <h2>Asteroides especiais e bosses</h2>
+            <p>Consulte os efeitos das ameaças especiais e as mecânicas exclusivas dos bosses.</p>
+          </div>
+          <button class="close-x" data-back type="button" aria-label="Fechar ajuda">×</button>
+        </header>
+
+        <div class="asteroid-guide">
+          <article class="guide-card"><img src="assets/asteroid_special/asteroid_fractional.png"
+              alt="Asteroide Fracional">
+            <div>
+              <h3>Fracional</h3>
+              <p>Ao ser destruído, se divide aleatoriamente em <strong>2 a 5 slices menores</strong>, que
+                continuam atravessando o campo.</p>
+            </div>
+          </article>
+          <article class="guide-card"><img src="assets/asteroid_special/asteroid_frozen.png" alt="Asteroide Frozen">
+            <div>
+              <h3>Frozen</h3>
+              <p>Dropa um card desconhecido. Pode <strong>desacelerar os asteroides</strong> ou, como
+                debuff, <strong>desacelerar sua nave</strong> por alguns segundos.</p>
+            </div>
+          </article>
+          <article class="guide-card boss-card"><img src="assets/asteroid_special/asteroid_resistence.png"
+              alt="Boss Resistance">
+            <div>
+              <h3>Resistance <span class="boss-tag">BOSS</span></h3>
+              <p>Boss com <strong>armadura e vida muito maiores</strong>. É preciso destruir toda a
+                armadura antes de atingir a vida real, enquanto ele continua invocando reforços.</p>
+            </div>
+          </article>
+          <article class="guide-card"><img src="assets/asteroid_special/asteroid_mystic.png" alt="Asteroide Mystic">
+            <div>
+              <h3>Mystic</h3>
+              <p>Sempre deixa um <strong>buff positivo</strong>: dano maior, cadência, multishot ou
+                velocidade temporária.</p>
+            </div>
+          </article>
+          <article class="guide-card boss-card"><img src="assets/asteroid_special/asteroid_gravity.png"
+              alt="Boss Gravity">
+            <div>
+              <h3>Gravity <span class="boss-tag">BOSS</span></h3>
+              <p>Começa com asteroides <strong>presos em órbita como escudos</strong>. Enquanto houver um
+                satélite, o núcleo não recebe dano. Ele avança sobre a nave e repõe proteção com novos
+                reforços.</p>
+            </div>
+          </article>
+          <article class="guide-card boss-card"><img src="assets/asteroid_special/asteroid_thorny.png" alt="Boss Thorn">
+            <div>
+              <h3>Thorn <span class="boss-tag">BOSS</span></h3>
+              <p>Dispara <strong>Thorn Spikes continuamente</strong> e ainda invoca outros asteroides.
+                Seus spikes são mais rápidos que na mecânica original.</p>
+            </div>
+          </article>
+          <article class="guide-card"><img src="assets/asteroid_special/asteroid_volcanic.png"
+              alt="Asteroide Vulcânico">
+            <div>
+              <h3>Vulcânico</h3>
+              <p>Dropa um card desconhecido. O buff incendeia todos os asteroides da tela com <strong>dano
+                  periódico</strong>; o debuff reduz seu dano em <strong>5</strong> temporariamente.
+              </p>
+            </div>
+          </article>
+          <article class="guide-card boss-card"><img src="assets/asteroid_special/asteroid_ciber.png" alt="Boss Cyber">
+            <div>
+              <h3>Cyber <span class="boss-tag">BOSS</span></h3>
+              <p>Mantém o olho travado na nave e dispara <strong>esferas azuis teleguiadas com muito mais
+                  frequência e velocidade</strong>, além de chamar reforços.</p>
+            </div>
+          </article>
+        </div>
+        <button class="btn back-button mobile-back" data-back type="button">← Voltar</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAIS -->
+  <aside class="modals">
+    <section id="pause" class="modal" data-overlay="false" aria-label="Jogo pausado">
+      <span class="eyebrow">PAUSA</span>
+      <h2>Fase pausada</h2>
+      <button id="resumeButton" class="btn btn--primary" type="button">
+        Continuar
+      </button>
+      <button id="quitButton" class="btn" type="button">
+        Voltar ao hangar
+      </button>
+    </section>
+
+    <section id="levelCompleted" class="modal" aria-label="Nível concluído">
+      <span class="eyebrow success">SETOR LIMPO</span>
+      <h2>Nível <span id="completeLevel">1</span> concluído!</h2>
+      <div class="result-grid">
+        <div>Pontuação</div>
+        <!-- <div><span>Destruídos</span><strong id="completeDestroyed">0</strong></div> -->
+        <!-- <div><span>Da fase</span><strong id="completeCoins">+0 ✦</strong></div> -->
+        <!-- <div><span>Bônus</span><strong id="completeBonus">+0 ✦</strong></div> -->
+        <!-- <div><span>Próximo</span><strong id="completeNext">2</strong></div> -->
+      </div>
+      <button id="nextLevelPlayButton" class="btn btn--primary" type="button">
+        Jogar próximo nível
+      </button>
+      <button id="completeMenuButton" class="btn" type="button">
+        Voltar ao hangar
+      </button>
+    </section>
+
+    <section id="gameover" class="modal">
+      <span class="eyebrow danger">NAVE DESTRUÍDA</span>
+      <h2>Fim da tentativa</h2>
+      <div class="result-grid">
+        <div><span>Setor</span><strong id="resultLevel">1</strong></div>
+        <div><span>Progresso</span><strong id="resultProgress">0/12</strong></div>
+        <div><span>Créditos</span><strong id="resultCoins">+0 ✦</strong></div>
+        <div><span>Recorde</span><strong id="resultBest">0</strong></div>
+      </div>
+      <button id="retryButton" class="btn btn--primary" type="button">Tentar novamente</button>
+      <button id="menuButton" class="btn" type="button">Voltar ao hangar</button>
+    </section>
+
+    <section id="ranking" class="modal">
+    </section>
+  </aside>
+
+  <script src="js/core/utils.js"></script>
+  <script src="js/core/Data.js"></script>
+  <script src="js/core/Level.js"></script>
+  <script src="js/entity/PlayerShip.js"></script>
+  <script src="js/entity/Asteroid.js"></script>
+  <script src="js/projectile/Bullet.js"></script>
+  <script src="js/projectile/CyberOrb.js"></script>
+  <script src="js/projectile/ThornSpike.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/game_loop.js"></script>
+  <script src="js/main.js"></script>
 </body>
 
 </html>
