@@ -1,5 +1,12 @@
 "use strict";
 
+const ships = [
+  { id: 1, src: 'assets/spaceship/spaceship_1.png', name: 'Nave Alpha', value: 0 },
+  { id: 2, src: 'assets/spaceship/spaceship_2.png', name: 'Nave Beta', value: 1800 },
+  { id: 3, src: 'assets/spaceship/spaceship_3.png', name: 'Nave Gamma', value: 3200 },
+  { id: 4, src: 'assets/spaceship/spaceship_4.png', name: 'Nave Suam', value: 10000 }
+];
+
 const state = {
   mode: "menu",
   time: 0,
