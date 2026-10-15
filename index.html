@@ -31,10 +31,10 @@
           <div class="hub-progress">
             <span>NÍVEL MÁX.</span><strong id="highest-level">1</strong>
           </div>
-          <button id="rankingButton" class="hub-button" type="button" aria-label="Botão abrir Tabela de classificação">
+          <button id="ranking-button" class="hub-button" type="button" aria-label="Botão abrir Tabela de classificação">
             <img src="assets/icons/ranking.png" alt="Icone da tabela de classificação" class="icon" />
           </button>
-          <button id="helpButton" class="hub-button" type="button" aria-label="Botão abrir ajuda">
+          <button id="help-button" class="hub-button" type="button" aria-label="Botão abrir ajuda">
             <img src="assets/icons/help.png" alt="Icone de ajuda" class="icon" />
           </button>
         </div>
@@ -186,90 +186,15 @@
         Ⅱ
       </button>
     </section>
-
-    <!-- Ajuda / Enciclopédia -->
-    <section id="helpScreen" class="screen overlay-screen" aria-label="Ajuda e asteroides especiais">
-      <div class="panel glass help-panel">
-        <header class="panel-header">
-          <div>
-            <span class="eyebrow">ARQUIVO DE AMEAÇAS</span>
-            <h2>Asteroides especiais e bosses</h2>
-            <p>Consulte os efeitos das ameaças especiais e as mecânicas exclusivas dos bosses.</p>
-          </div>
-          <button class="close-x" data-back type="button" aria-label="Fechar ajuda">×</button>
-        </header>
-
-        <div class="asteroid-guide">
-          <article class="guide-card"><img src="assets/asteroid_special/asteroid_fractional.png"
-              alt="Asteroide Fracional">
-            <div>
-              <h3>Fracional</h3>
-              <p>Ao ser destruído, se divide aleatoriamente em <strong>2 a 5 slices menores</strong>, que
-                continuam atravessando o campo.</p>
-            </div>
-          </article>
-          <article class="guide-card"><img src="assets/asteroid_special/asteroid_frozen.png" alt="Asteroide Frozen">
-            <div>
-              <h3>Frozen</h3>
-              <p>Dropa um card desconhecido. Pode <strong>desacelerar os asteroides</strong> ou, como
-                debuff, <strong>desacelerar sua nave</strong> por alguns segundos.</p>
-            </div>
-          </article>
-          <article class="guide-card boss-card"><img src="assets/asteroid_special/asteroid_resistence.png"
-              alt="Boss Resistance">
-            <div>
-              <h3>Resistance <span class="boss-tag">BOSS</span></h3>
-              <p>Boss com <strong>armadura e vida muito maiores</strong>. É preciso destruir toda a
-                armadura antes de atingir a vida real, enquanto ele continua invocando reforços.</p>
-            </div>
-          </article>
-          <article class="guide-card"><img src="assets/asteroid_special/asteroid_mystic.png" alt="Asteroide Mystic">
-            <div>
-              <h3>Mystic</h3>
-              <p>Sempre deixa um <strong>buff positivo</strong>: dano maior, cadência, multishot ou
-                velocidade temporária.</p>
-            </div>
-          </article>
-          <article class="guide-card boss-card"><img src="assets/asteroid_special/asteroid_gravity.png"
-              alt="Boss Gravity">
-            <div>
-              <h3>Gravity <span class="boss-tag">BOSS</span></h3>
-              <p>Começa com asteroides <strong>presos em órbita como escudos</strong>. Enquanto houver um
-                satélite, o núcleo não recebe dano. Ele avança sobre a nave e repõe proteção com novos
-                reforços.</p>
-            </div>
-          </article>
-          <article class="guide-card boss-card"><img src="assets/asteroid_special/asteroid_thorny.png" alt="Boss Thorn">
-            <div>
-              <h3>Thorn <span class="boss-tag">BOSS</span></h3>
-              <p>Dispara <strong>Thorn Spikes continuamente</strong> e ainda invoca outros asteroides.
-                Seus spikes são mais rápidos que na mecânica original.</p>
-            </div>
-          </article>
-          <article class="guide-card"><img src="assets/asteroid_special/asteroid_volcanic.png"
-              alt="Asteroide Vulcânico">
-            <div>
-              <h3>Vulcânico</h3>
-              <p>Dropa um card desconhecido. O buff incendeia todos os asteroides da tela com <strong>dano
-                  periódico</strong>; o debuff reduz seu dano em <strong>5</strong> temporariamente.
-              </p>
-            </div>
-          </article>
-          <article class="guide-card boss-card"><img src="assets/asteroid_special/asteroid_ciber.png" alt="Boss Cyber">
-            <div>
-              <h3>Cyber <span class="boss-tag">BOSS</span></h3>
-              <p>Mantém o olho travado na nave e dispara <strong>esferas azuis teleguiadas com muito mais
-                  frequência e velocidade</strong>, além de chamar reforços.</p>
-            </div>
-          </article>
-        </div>
-        <button class="btn back-button mobile-back" data-back type="button">← Voltar</button>
-      </div>
-    </section>
   </main>
 
   <!-- MODAIS -->
   <aside class="modals">
+    <section class="modal-header">
+        <h3>Tal...</h3>
+        <img src="" alt="" class="icon" />
+    </section>
+
     <section id="pause" class="modal" data-overlay="false" aria-label="Jogo pausado">
       <span class="eyebrow">PAUSA</span>
       <h2>Fase pausada</h2>
@@ -312,7 +237,88 @@
       <button id="menuButton" class="btn" type="button">Voltar ao hangar</button>
     </section>
 
+    <!-- RANKING DE JOGADORES -->
     <section id="ranking" class="modal">
+      <h1>RANKING</h1>
+    </section>
+
+    <!-- Ajuda / Enciclopédia -->
+    <section id="help" class="modal">
+      <header class="panel-header">
+        <div>
+          <span class="eyebrow">ARQUIVO DE AMEAÇAS</span>
+          <h2>Asteroides especiais e bosses</h2>
+          <p>Consulte os efeitos das ameaças especiais e as mecânicas exclusivas dos bosses.</p>
+        </div>
+        <button class="close-x" data-back type="button" aria-label="Fechar ajuda">×</button>
+      </header>
+
+      <div class="asteroid-guide">
+        <article class="guide-card"><img src="assets/asteroid_special/asteroid_fractional.png"
+            alt="Asteroide Fracional">
+          <div>
+            <h3>Fracional</h3>
+            <p>Ao ser destruído, se divide aleatoriamente em <strong>2 a 5 slices menores</strong>, que
+              continuam atravessando o campo.</p>
+          </div>
+        </article>
+        <article class="guide-card"><img src="assets/asteroid_special/asteroid_frozen.png" alt="Asteroide Frozen">
+          <div>
+            <h3>Frozen</h3>
+            <p>Dropa um card desconhecido. Pode <strong>desacelerar os asteroides</strong> ou, como
+              debuff, <strong>desacelerar sua nave</strong> por alguns segundos.</p>
+          </div>
+        </article>
+        <article class="guide-card boss-card"><img src="assets/asteroid_special/boss/asteroid_resistence.png"
+            alt="Boss Resistance">
+          <div>
+            <h3>Resistance <span class="boss-tag">BOSS</span></h3>
+            <p>Boss com <strong>armadura e vida muito maiores</strong>. É preciso destruir toda a
+              armadura antes de atingir a vida real, enquanto ele continua invocando reforços.</p>
+          </div>
+        </article>
+        <article class="guide-card"><img src="assets/asteroid_special/asteroid_mystic.png" alt="Asteroide Mystic">
+          <div>
+            <h3>Mystic</h3>
+            <p>Sempre deixa um <strong>buff positivo</strong>: dano maior, cadência, multishot ou
+              velocidade temporária.</p>
+          </div>
+        </article>
+        <article class="guide-card boss-card"><img src="assets/asteroid_special/boss/asteroid_gravity.png"
+            alt="Boss Gravity">
+          <div>
+            <h3>Gravity <span class="boss-tag">BOSS</span></h3>
+            <p>Começa com asteroides <strong>presos em órbita como escudos</strong>. Enquanto houver um
+              satélite, o núcleo não recebe dano. Ele avança sobre a nave e repõe proteção com novos
+              reforços.</p>
+          </div>
+        </article>
+        <article class="guide-card boss-card"><img src="assets/asteroid_special/boss/asteroid_thorny.png"
+            alt="Boss Thorn">
+          <div>
+            <h3>Thorn <span class="boss-tag">BOSS</span></h3>
+            <p>Dispara <strong>Thorn Spikes continuamente</strong> e ainda invoca outros asteroides.
+              Seus spikes são mais rápidos que na mecânica original.</p>
+          </div>
+        </article>
+        <article class="guide-card"><img src="assets/asteroid_special/asteroid_volcanic.png" alt="Asteroide Vulcânico">
+          <div>
+            <h3>Vulcânico</h3>
+            <p>Dropa um card desconhecido. O buff incendeia todos os asteroides da tela com <strong>dano
+                periódico</strong>; o debuff reduz seu dano em <strong>5</strong> temporariamente.
+            </p>
+          </div>
+        </article>
+        <article class="guide-card boss-card"><img src="assets/asteroid_special/boss/asteroid_ciber.png"
+            alt="Boss Cyber">
+          <div>
+            <h3>Cyber <span class="boss-tag">BOSS</span></h3>
+            <p>Mantém o olho travado na nave e dispara <strong>esferas azuis teleguiadas com muito mais
+                frequência e velocidade</strong>, além de chamar reforços.</p>
+          </div>
+        </article>
+      </div>
+      <button class="btn back-button mobile-back" data-back type="button">← Voltar</button>
     </section>
   </aside>
 
