@@ -82,7 +82,7 @@ class PlayerShip {
   /**
    * Cria a animação da nave:
    * - começa em startY;
-   * - diminui de startScale até minScale;
+   * - diminui o scale até minScale;
    * - sobe até sair pelo topo.
    * - aparece abaixo da viewport;
    * - sobe até endY;
@@ -99,8 +99,7 @@ class PlayerShip {
     if (t < split) {
       const p = t / split;
       const e = p * p * (3 - 2 * p);
-      this.#launch.scale =
-        this.#launch.startScale + (minScale - this.#launch.startScale) * e;
+      this.#launch.scale = 1.1 + (minScale - 1.1) * e;
       this.x = w / 2;
       const exitY = -(this.height * minScale);
       this.y = this.#launch.startY + (exitY - this.#launch.startY) * e;
@@ -159,7 +158,6 @@ class PlayerShip {
       duration: duration,
       startX: pose.x,
       startY: pose.y,
-      startScale: 1.1,
       endY: h - 90,
     };
   }
