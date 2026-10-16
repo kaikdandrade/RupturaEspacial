@@ -189,24 +189,22 @@
   </main>
 
   <!-- MODAIS -->
-  <aside class="modals">
-    <section class="modal-header">
-        <h3>Tal...</h3>
-        <img src="" alt="" class="icon" />
-    </section>
+  <aside>
+    <!-- PAUSE -->
+    <dialog id="pause" class="modal" aria-label="Jogo pausado">
+      <header class="modal-header">
+        <h2 class="title">Fase pausada</h2>
+      </header>
 
-    <section id="pause" class="modal" data-overlay="false" aria-label="Jogo pausado">
       <span class="eyebrow">PAUSA</span>
-      <h2>Fase pausada</h2>
-      <button id="resumeButton" class="btn btn--primary" type="button">
-        Continuar
-      </button>
-      <button id="quitButton" class="btn" type="button">
-        Voltar ao hangar
-      </button>
-    </section>
 
-    <section id="levelCompleted" class="modal" aria-label="Nível concluído">
+      <footer class="modal-footer">
+        <button id="resumeButton" class="btn" type="button">Continuar</button>
+        <button id="quitButton" class="btn" type="button">Menu Principal</button>
+      </footer>
+    </dialog>
+
+    <dialog id="levelCompleted" class="modal" aria-label="Nível concluído">
       <span class="eyebrow success">SETOR LIMPO</span>
       <h2>Nível <span id="completeLevel">1</span> concluído!</h2>
       <div class="result-grid">
@@ -222,10 +220,13 @@
       <button id="completeMenuButton" class="btn" type="button">
         Voltar ao hangar
       </button>
-    </section>
+    </dialog>
 
-    <section id="gameover" class="modal">
-      <span class="eyebrow danger">NAVE DESTRUÍDA</span>
+    <dialog id="gameover" class="modal">
+      <header>
+        <h2 class="title">Você perdeu! NAVE DESTRUÍDA</h2>
+      </header>
+      <span class="eyebrow danger">AAA</span>
       <h2>Fim da tentativa</h2>
       <div class="result-grid">
         <div><span>Setor</span><strong id="resultLevel">1</strong></div>
@@ -235,15 +236,18 @@
       </div>
       <button id="retryButton" class="btn btn--primary" type="button">Tentar novamente</button>
       <button id="menuButton" class="btn" type="button">Voltar ao hangar</button>
-    </section>
+    </dialog>
 
     <!-- RANKING DE JOGADORES -->
-    <section id="ranking" class="modal">
-      <h1>RANKING</h1>
-    </section>
+    <dialog id="ranking" class="modal">
+      <header class="modal-header">
+        <h2 class="title">RANKING</h2>
+        <button aria-label="Fechar" class="close-modal" title="Fechar">&times;</button>
+      </header>
+    </dialog>
 
     <!-- Ajuda / Enciclopédia -->
-    <section id="help" class="modal">
+    <dialog id="help" class="modal">
       <header class="panel-header">
         <div>
           <span class="eyebrow">ARQUIVO DE AMEAÇAS</span>
@@ -319,7 +323,7 @@
         </article>
       </div>
       <button class="btn back-button mobile-back" data-back type="button">← Voltar</button>
-    </section>
+    </dialog>
   </aside>
 
   <script src="js/core/utils.js"></script>
