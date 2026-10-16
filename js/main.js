@@ -5,7 +5,8 @@
 // ============================================================
 
 const screens = [...document.querySelectorAll(".screen")];
-const modals = [...document.querySelectorAll(".modal")];
+const modals = [...document.querySelectorAll("dialog")];
+const buttonCloseModals = [...document.querySelectorAll(".close-modal")];
 const shipPreview = $('ship-preview');
 const bestScore = $("best-score");
 const highestLevel = $("highest-level");
@@ -32,16 +33,11 @@ function showScreen(id = null) {
 }
 
 function showModal(id = null) {
-  modals.forEach((modal) =>
-    modal.classList.toggle("active", !!id && modal.id === id),
-  );
-  modals[0].parentElement.classList.add("show");
-  console.log(modals, modals[0].parentElement);
+  modals.forEach((modal) => (!!id && modal.id === id) ? modal.showModal() : modal.close());
 }
 
 function closeModals() {
-  modals.forEach((modal) => modal.classList.remove("active"));
-  modals[0].parentElement.classList.remove("show");
+  modals.forEach((modal) => modal.close());
 }
 
 function pauseGame() {
@@ -132,31 +128,7 @@ function createArenaAsteroid({
   });
 }
 
-function createSpawnPlan(cfg) {
-  const target = cfg.target;
-  const firstBatch = Math.min(
-    target,
-    clamp(Math.ceil(Math.sqrt(target)), 4, 6),
-  );
-  const batchMin = target >= 18 ? 2 : 1;
-  const batchMax = target >= 42 ? 5 : target >= 24 ? 4 : 3;
-  const activeCap = clamp(firstBatch + Math.floor(cfg.level / 8), 6, 14);
-  const intervalMin = Math.max(1.25, 1.85 - cfg.level * 0.012);
-  const intervalMax = Math.max(intervalMin + 0.3, 2.35 - cfg.level * 0.01);
-  return {
-    total: target,
-    spawned: 0,
-    remaining: target,
-    batchIndex: 0,
-    firstBatch,
-    batchMin,
-    batchMax,
-    activeCap,
-    intervalMin,
-    intervalMax,
-    timer: 0,
-  };
-}
+
 
 function spawnNormalBatch(requestedCount, { first = false } = {}) {
   const cfg = state.levelConfig;
@@ -186,10 +158,26 @@ function spawnNormalBatch(requestedCount, { first = false } = {}) {
   return count;
 }
 
+function showToast(message) {
+  console.log(message);
+}
+
+function asteroidSpeedFactor() {
+  return 1;
+}
+
+function drawAsteroidCounter(asteroid) {
+  ctx.save();
+  ctx.font = "bold 14px sans-serif";
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.fillText(asteroid.hp, 0, 5);
+  ctx.restore();
+}
+
 function beginNormalEncounter() {
   const cfg = state.levelConfig;
   if (!cfg || cfg.isBoss) return;
-  state.spawnPlan = createSpawnPlan(cfg);
   const entered = spawnNormalBatch(state.spawnPlan.firstBatch, {
     first: true,
   });
@@ -197,13 +185,15 @@ function beginNormalEncounter() {
     state.spawnPlan.intervalMin,
     state.spawnPlan.intervalMax,
   );
-  showToast(`${entered} ameaças entrando • ${cfg.target} no setor`);
+
+  console.log(state);
+  showToast(`${entered} ameaças entrando • ${state.spawnPlan.total} no setor`);
 }
 
 function updateNormalSpawner(dt) {
   const cfg = state.levelConfig;
   const plan = state.spawnPlan;
-  if (!cfg || cfg.isBoss || !plan || plan.remaining <= 0) return;
+  // if (!cfg || cfg.isBoss || !plan || plan.remaining <= 0) return;
 
   plan.timer -= dt;
   if (plan.timer > 0) return;
@@ -344,7 +334,7 @@ document.addEventListener("keyup", (event) => {
   }
 });
 window.addEventListener("blur", () => {
-  if (state.mode === "playing") 
+  if (state.mode === "playing")
     pauseGame();
 });
 
@@ -386,6 +376,7 @@ playShipButton.addEventListener("click", () => {
   setTimeout((_) => {
     level.set(1);
     state.mode = "playing";
+    beginNormalEncounter();
   }, 2000);
 });
 
@@ -404,7 +395,7 @@ function changeSelectorLevel(delta) {
 prevLevelButton.addEventListener("click", () => changeSelectorLevel(-1));
 nextLevelButton.addEventListener("click", () => changeSelectorLevel(1));
 
-
+buttonCloseModals.forEach((btn) => btn.addEventListener('click', (e) => (btn.parentNode.parentNode)?.close()));
 rankingButton.addEventListener("click", () => showModal("ranking"));
 helpButton.addEventListener("click", () => showModal("help"));
 // $("pauseButton").addEventListener("click", () => togglePause(true));
