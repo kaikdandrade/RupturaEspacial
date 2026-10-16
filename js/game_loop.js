@@ -34,6 +34,7 @@ function update(dt, now) {
 
   // if (state.levelConfig.isBoss) updateBossSummons(dt);
   // else updateNormalSpawner(dt);
+  updateNormalSpawner(dt);
 
   // const wantsShoot = keys.has(" ") || keys.has("space") || state.pointerDown;
   // if (wantsShoot) shoot(now);
@@ -41,7 +42,7 @@ function update(dt, now) {
   player.update(dt);
   // applyGravityFields(dt);
   bullets.forEach((b) => b.update(dt));
-  // asteroids.forEach((a) => a.update(dt));
+  asteroids.forEach((a) => a.update(dt));
   // enemyProjectiles.forEach((p) => p.update(dt));
   // pickups.forEach((p) => p.update(dt));
   // handleCollisions();
@@ -58,20 +59,11 @@ function update(dt, now) {
 
 function drawBackground() {
   const { w, h } = viewport();
-  // const grad = ctx.createLinearGradient(0, 0, 0, h);
-  // grad.addColorStop(0, "#050712");
-  // grad.addColorStop(0.55, "#070b1c");
-  // grad.addColorStop(1, "#101744");
-  // ctx.fillStyle = grad;
-  // ctx.fillRect(0, 0, w, h);
-
-  ctx.save();
   for (const star of stars) {
     ctx.globalAlpha = star.alpha;
     ctx.fillStyle = "#dceaff";
     ctx.fillRect(star.x, star.y, star.size, star.size * 1.35);
   }
-  ctx.restore();
 
   const glow = ctx.createRadialGradient(
     w * 0.5,
