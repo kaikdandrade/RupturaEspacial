@@ -3,6 +3,9 @@
 // ============================================================
 // RUPTURA ESPACIAL - Versão 1.0
 // ============================================================
+const LEVEL_UNLOCK_SPECIALS = 5;
+const SPECIALS_ASTEROIDS = ["vulcanic", "frozen", "mystic", "fractional"];
+const BOSSES_ASTEROIDS = ["resistance", "gravity", "thorny", "cyber"];
 
 const screens = [...document.querySelectorAll(".screen")];
 const modals = [...document.querySelectorAll("dialog")];
@@ -20,7 +23,11 @@ const nextLevelButton = $("next-level-button");
 const levelLabel = $("level-info");
 const rankingButton = $("ranking-button");
 const helpButton = $("help-button");
-// const BOSS_ORDER = ["resistance", "gravity", "thorny", "cyber"];
+const hubKills = $("hubKills");
+const hubTarget = $("hubTarget");
+const hubLevel = $("selectedLevel");
+const hubScore = $("playScore");
+const levelProgressBar = $("levelProgressBar");
 
 // function upgradeCost(type) {
 //   const cfg = BALANCE.upgradeCosts[type];
@@ -79,35 +86,25 @@ function resize() {
   }
 }
 
-function randomSupportType(cfg) {
-  if (!cfg.availableSpecials.length || Math.random() >= cfg.specialChance)
-    return "common";
-  return cfg.availableSpecials[
-    Math.floor(Math.random() * cfg.availableSpecials.length)
-  ];
+
+function randomTypeBoss(lConfig = state.levelConfig) {
+  if (lConfig.isLevelBoss)
+    return BOSSES_ASTEROIDS[Math.floor(lConfig.number / 5) - 1 % BOSSES_ASTEROIDS.length];
+  return null;
 }
 
-function createArenaAsteroid({
-  type = null,
-  helper = false,
-  isPrimary = true,
-  entryDelay = 0,
-  x = null,
-  y = null,
-  hp = null,
-  speed = null,
-  size = null,
-} = {}) {
-  const cfg = state.levelConfig;
-  if (!cfg) return null;
+function randomTypeAsteroids(lConfig = state.levelConfig) {
+  if (lConfig.number <= LEVEL_UNLOCK_SPECIALS) return "common";
+  if (Math.random() <= lConfig.specialChance)
+    return SPECIALS_ASTEROIDS[Math.floor(Math.random() * SPECIALS_ASTEROIDS.length)];
+  else return "common";
+}
+
+function spawnAsteroid({ helper = false, isPrimary = true, entryDelay, x, y, size }, lConfig = state.levelConfig) {
   const { w } = viewport();
-  const finalType = type || randomSupportType(cfg);
+  const finalHp = randomInt(lConfig.enemies.hp.min, lConfig.enemies.hp.max);
+  const finalSpeed = lConfig.enemies.speed * random(0.86, 1.086);
   const finalSize = size || random(54, 78);
-  const finalHp =
-    hp ??
-    randomInt(cfg.minHp, cfg.maxHp) +
-    (finalType !== "common" ? Math.floor(cfg.level / 6) : 0);
-  const finalSpeed = speed ?? cfg.baseSpeed * random(0.76, 1.06);
   const finalX =
     x ??
     random(
@@ -115,79 +112,81 @@ function createArenaAsteroid({
       Math.max(finalSize * 0.65 + 1, w - finalSize * 0.65),
     );
   const finalY = y ?? -finalSize - random(12, 100);
-  return new Asteroid({
+  const type = randomTypeAsteroids();
+  console.log("FINAL SPEED", finalSpeed);
+
+  const options = {
     x: finalX,
     y: finalY,
     hp: finalHp,
     speed: finalSpeed,
-    type: finalType,
+    type: type,
     size: finalSize,
     helper,
     isPrimary,
     entryDelay,
-  });
+  };
+  switch (type) {
+    case "resistance":
+      return new ResistanceAsteroid(options);
+    case "fractionalSlice":
+      return new FractionalSliceAsteroid(options);
+    case "fractional":
+      return new FractionalAsteroid(options);
+    case "cyber":
+      return new CyberAsteroid(options);
+    case "gravity":
+      return new GravityAsteroid(options);
+    case "thorny":
+      return new ThornyAsteroid(options);
+    case "frozen":
+      return new FrozenAsteroid(options);
+    case "mystic":
+      return new MysticAsteroid(options);
+    case "volcanic":
+      return new VolcanicAsteroid(options);
+    case "common":
+    default:
+      return new CommonAsteroid(options);
+  }
 }
 
-
-
-function spawnNormalBatch(requestedCount, { first = false } = {}) {
+function spawnNormalBatch(requestedCount) {
   const cfg = state.levelConfig;
   const plan = state.spawnPlan;
-  if (!cfg || cfg.isBoss || !plan || plan.remaining <= 0) return 0;
+  if (!cfg || cfg.isBoss || !plan) return 0;
 
   const activeThreats = asteroids.filter((a) => !a.dead).length;
   const freeSlots = Math.max(0, plan.activeCap - activeThreats);
   const count = Math.max(
     0,
-    Math.min(requestedCount, plan.remaining, freeSlots),
+    Math.min(requestedCount, freeSlots),
   );
   if (!count) return 0;
 
   for (let i = 0; i < count; i++) {
     // O lote entra como grupo, mas com uma pequena defasagem para não sobrepor sprites na borda superior.
-    const entryDelay = first ? i * 0.12 : i * random(0.09, 0.17);
-    const asteroid = createArenaAsteroid({ isPrimary: true, entryDelay });
+    const entryDelay = i * random(0.086, 0.172);
+    const asteroid = spawnAsteroid({ isPrimary: true, entryDelay });
     if (asteroid) {
       asteroids.push(asteroid);
       plan.spawned++;
-      plan.remaining--;
     }
   }
-
-  plan.batchIndex++;
   return count;
-}
-
-function showToast(message) {
-  console.log(message);
-}
-
-function asteroidSpeedFactor() {
-  return 1;
-}
-
-function drawAsteroidCounter(asteroid) {
-  ctx.save();
-  ctx.font = "bold 14px sans-serif";
-  ctx.fillStyle = "#ffffff";
-  ctx.textAlign = "center";
-  ctx.fillText(asteroid.hp, 0, 5);
-  ctx.restore();
 }
 
 function beginNormalEncounter() {
   const cfg = state.levelConfig;
   if (!cfg || cfg.isBoss) return;
-  const entered = spawnNormalBatch(state.spawnPlan.firstBatch, {
-    first: true,
-  });
+  const entered = spawnNormalBatch(state.spawnPlan.batchMax);
   state.spawnPlan.timer = random(
     state.spawnPlan.intervalMin,
     state.spawnPlan.intervalMax,
   );
 
   console.log(state);
-  showToast(`${entered} ameaças entrando • ${state.spawnPlan.total} no setor`);
+  console.log(`${entered} ameaças entrando • ${state.spawnPlan.total} no setor`);
 }
 
 function updateNormalSpawner(dt) {
@@ -211,82 +210,11 @@ function updateNormalSpawner(dt) {
   plan.timer = entered ? random(plan.intervalMin, plan.intervalMax) : 0.35;
 }
 
-// function damagePlayer(amount, sourceX, sourceY) {
-//   if (!player || player.invuln > 0 || state.mode !== "playing") return;
-//   const damage = Math.max(1, Math.ceil(amount));
-
-//   if (player.resistance <= 0 || damage >= player.resistance) {
-//     player.resistance = Math.max(0, player.resistance - damage);
-//     burst(player.x, player.y, "#ff718b", 24, 185);
-//     gameOver();
-//     return;
-//   }
-
-//   player.resistance -= damage;
-//   player.invuln = 0.7;
-//   state.flash = 0.28;
-//   state.shake = Math.max(state.shake, 7);
-//   burst(player.x, player.y, "#ff8aa0", 15, 130);
-//   playTone(80, 0.14, 0.035, "sawtooth");
-
-//   if (Number.isFinite(sourceX) && Number.isFinite(sourceY)) {
-//     const dx = player.x - sourceX;
-//     const dy = player.y - sourceY;
-//     const d = Math.hypot(dx, dy) || 1;
-//     player.x += (dx / d) * 18;
-//     player.y += (dy / d) * 18;
-//   }
-// }
-
-// function handleCollisions() {
-//   if (!player || state.mode !== "playing") return;
-
-//   for (const bullet of bullets) {
-//     if (bullet.dead) continue;
-//     let hit = null;
-//     let bestY = -Infinity;
-//     for (const asteroid of asteroids) {
-//       if (asteroid.dead || asteroid.entryDelay > 0) continue;
-//       const r = bullet.radius + asteroid.radius;
-//       if (distSq(bullet, asteroid) <= r * r && asteroid.y > bestY) {
-//         hit = asteroid;
-//         bestY = asteroid.y;
-//       }
-//     }
-//     if (hit) {
-//       bullet.dead = true;
-//       hit.hit(bullet.damage, "shot");
-//     }
-//   }
-
-//   if (player.invuln <= 0) {
-//     for (const asteroid of asteroids) {
-//       if (asteroid.dead || asteroid.entryDelay > 0) continue;
-//       if (circlesTouch(player, asteroid, -3)) {
-//         const power = asteroid.collisionPower();
-//         damagePlayer(power, asteroid.x, asteroid.y);
-
-//         if (asteroid.boss) {
-//           // O boss não desaparece ao encostar na nave; ele é repelido e continua a luta.
-//           const dx = asteroid.x - player.x;
-//           const dy = asteroid.y - player.y;
-//           const d = Math.hypot(dx, dy) || 1;
-//           asteroid.vx += (dx / d) * 145;
-//           asteroid.vy += (dy / d) * 145;
-//         } else {
-//           asteroid.destroy("collision");
-//           burst(asteroid.x, asteroid.y, "#d9e4ff", 12, 135);
-//         }
-//         break;
-//       }
-//     }
-//   }
-
 // function buyUpgrade(type) {
 //   if (!BALANCE.upgradeCosts[type]) return;
 //   const cost = upgradeCost(type);
 //   if (save.coins < cost) {
-//     showToast("Créditos insuficientes");
+//     console.log("Créditos insuficientes");
 //     return;
 //   }
 //   save.coins -= cost;
@@ -295,7 +223,7 @@ function updateNormalSpawner(dt) {
 //   updateMenuUI();
 //   // CLICK (upgrades)
 //   playTone(760, 0.09, 0.03, "triangle");
-//   showToast("Melhoria instalada");
+//   console.log("Melhoria instalada");
 // }
 
 // CLICK (antigo handleShipAction)
@@ -321,6 +249,23 @@ function loadMenuUI() {
   nextShipButton.disabled = SAVE.selectedShip >= ships.length - 1;
 
   // Upgrades...
+}
+
+function updateHud() {
+  const total = state.spawnPlan?.total ?? 0;
+  const kills = state.kills;
+
+  hubKills.textContent = kills;
+  hubTarget.textContent = total;
+
+  hubLevel.textContent = state.selectedLevel;
+  hubScore.textContent = Math.floor(state.score);
+
+  const progress = total > 0
+    ? Math.min(100, (kills / total) * 100)
+    : 0;
+
+  levelProgressBar.style.width = `${progress}%`;
 }
 
 // -------------------------- Eventos --------------------------

@@ -29,6 +29,8 @@ function update(dt, now) {
   }
 
   if (state.mode !== "playing") return;
+  updateHud();
+
   // state.time += dt;
   // state.score += dt * (4 + state.selectedLevel * 0.65);
 
@@ -41,13 +43,16 @@ function update(dt, now) {
 
   player.update(dt);
   // applyGravityFields(dt);
-  bullets.forEach((b) => b.update(dt));
   asteroids.forEach((a) => a.update(dt));
   // enemyProjectiles.forEach((p) => p.update(dt));
   // pickups.forEach((p) => p.update(dt));
   // handleCollisions();
 
-  // bullets = bullets.filter((b) => !b.dead);
+  // Detecta colisões depois de movimentar os objetos
+  collisions.update();
+
+  // Remove objetos destruídos
+  asteroids = asteroids.filter(a => !a.dead);
   // asteroids = asteroids.filter((a) => !a.dead);
   // enemyProjectiles = enemyProjectiles.filter((p) => !p.dead);
   // pickups = pickups.filter((p) => !p.dead);
@@ -59,11 +64,13 @@ function update(dt, now) {
 
 function drawBackground() {
   const { w, h } = viewport();
+  ctx.save();
   for (const star of stars) {
     ctx.globalAlpha = star.alpha;
     ctx.fillStyle = "#dceaff";
     ctx.fillRect(star.x, star.y, star.size, star.size * 1.35);
   }
+  ctx.restore();
 
   const glow = ctx.createRadialGradient(
     w * 0.5,
@@ -131,8 +138,6 @@ function draw() {
     drawArenaField();
     pickups.forEach((p) => p.draw());
     asteroids.forEach((a) => a.draw());
-    bullets.forEach((b) => b.draw());
-    enemyProjectiles.forEach((p) => p.draw());
     player.draw();
   }
 
@@ -147,6 +152,37 @@ function draw() {
   if (state.flash > 0) {
     ctx.fillStyle = `rgba(255, 104, 118, ${state.flash * 1.4})`;
     ctx.fillRect(0, 0, w, h);
+  }
+
+  function debugHitbox(hitbox, color = "#00ff00") {
+    ctx.save();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+
+    ctx.beginPath();
+    ctx.arc(
+      hitbox.x,
+      hitbox.y,
+      hitbox.radius,
+      0,
+      Math.PI * 2
+    );
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  if (state.mode === "playing") {
+    debugHitbox(player.hitbox, "#00ff00");
+
+    asteroids.forEach(a => {
+      debugHitbox(a.hitbox, "#ff0000");
+    });
+
+    player.bullets.forEach(b => {
+      if (!b.dead) debugHitbox(b.hitbox, "#00ffff");
+    });
   }
 }
 

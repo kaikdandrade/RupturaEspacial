@@ -1,11 +1,48 @@
 "use strict";
 
-class PlayerShip {
+class Bullet {
+  constructor(x, y, vx = 0) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = -770;
+    this.radius = 3.5;
+    this.dead = false;
+    this.damage = Math.max(
+      0,
+      1 + SAVE.upgrades_level.damage //+ effectDamageBonus() - effectDamagePenalty(),
+    );
+    this.hitbox = new Hitbox(this, this.radius);
+  }
+
+  update(dt) {
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    const { w } = viewport();
+    if (this.y < -20 || this.x < -25 || this.x > w + 25) this.dead = true;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.strokeStyle = "#86f6ff";
+    ctx.lineWidth = 3;
+    ctx.shadowColor = "#5eeaff";
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y + 15);
+    ctx.lineTo(this.x - this.vx * 0.008, this.y - 7);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+class Player {
   #skinIndex = SAVE.selectedShip;
   #keys = new Set();
   #launch = {};
   #isShooting = false;
   #lastShotTime = 0;
+  #bullets = [];
   #FIRE_RATE = Math.max(
     BALANCE.minFireInterval,
     Math.round(
@@ -35,7 +72,20 @@ class PlayerShip {
     this.image = loadImage(ASSETS.ships[this.#skinIndex]);
     ((this.resistance = 0), (this.maxResistance = this.resistance));
     this.invuln = 0;
+    this.hitbox = new Hitbox(this, this.radius);
 
+    const onAsteroidContact = ({ other, group }) => {
+      if (group !== "asteroids") return;
+      if (this.invuln > 0 || other.dead) return;
+
+      console.log("Nave atingida por um asteroide!");
+
+      this.invuln = 0.7;
+      // Aqui você poderá implementar o dano da nave.
+    };
+
+    this.hitbox.on("enter", onAsteroidContact);
+    this.hitbox.on("stay", onAsteroidContact);
     window.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
       if (this.#ACTION_KEYS.includes(key)) {
@@ -52,13 +102,19 @@ class PlayerShip {
     });
   }
 
+  entrou() {
+    console.log("Algo colidiu com o player!");
+  }
+
   update(dt) {
     // Tiro da nave
     if ((this.#keys.has("enter") || this.#keys.has(" ")) || this.#isShooting) this.shoot();
+    this.#bullets.forEach((b) => b.update(dt));
+    this.#bullets = this.#bullets.filter(b => !b.dead);
 
     // Movimentação da nave
     const { w, h } = viewport();
-    const speed = stats.moveSpeed();
+    const speed = BALANCE.baseMoveSpeed;
     let dx = 0;
     let dy = 0;
 
@@ -76,7 +132,7 @@ class PlayerShip {
 
     this.x = clamp(this.x, this.radius + 7, w - this.radius - 14);
     this.y = clamp(this.y, 80, h - this.radius - 9);
-    this.invuln = Math.max(0, this.invuln - dt);
+    // this.invuln = Math.max(0, this.invuln - dt);
   }
 
   /**
@@ -119,6 +175,7 @@ class PlayerShip {
   }
 
   draw(alpha = 1) {
+    this.#bullets.forEach((b) => b.draw());
     const { width, height, image } = this;
     ctx.save();
     ctx.translate(this.x, this.y);
@@ -171,7 +228,7 @@ class PlayerShip {
     const now = performance.now();
     if (now - this.#lastShotTime >= this.#FIRE_RATE) {
       this.#lastShotTime = now;
-      bullets.push(new Bullet(player.x, player.y - 29, 0));
+      this.#bullets.push(new Bullet(player.x, player.y - 29, 0));
 
       // Tiro Triplo
       // bullets.push(new Bullet(player.x - 9, player.y - 25, -105));
@@ -180,6 +237,10 @@ class PlayerShip {
       playTone(560, 0.035, 0.018, "square");
     }
   }
+
+  get bullets() {
+    return this.#bullets;
+  }
 }
 
-const player = new PlayerShip();
+const player = new Player();

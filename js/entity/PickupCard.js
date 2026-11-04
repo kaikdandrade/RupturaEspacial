@@ -7,10 +7,14 @@ class PickupCard {
     this.height = 70;
     this.radius = 23;
     this.dead = false;
-    this.life = BALANCE.cards.lifetime;
+    this.life = BALANCE.cardsLifetime;
     this.age = 0;
     this.speed = 48;
     this.image = loadImage(ASSETS.special[type]);
+    this.hitbox = new Hitbox(this, this.radius);
+    this.hitbox.on("enter", ({ group }) => {
+      if (group === "player") this.collect();
+    });
   }
 
   update(dt) {
@@ -24,20 +28,29 @@ class PickupCard {
   collect() {
     if (this.dead) return;
     this.dead = true;
-    burst(
-      this.x,
-      this.y,
-      this.type === "volcanic"
-        ? "#ff9968"
-        : this.type === "frozen"
-          ? "#8eeeff"
-          : "#c58cff",
-      18,
-      120,
-    );
-    if (this.type === "frozen") resolveFrozenCard();
-    if (this.type === "mystic") resolveMysticCard();
-    if (this.type === "volcanic") resolveVolcanicCard();
+    const effect = state.effects;
+    if (this.type === "frozen") {
+      if (Math.random() < 0.5) {
+        effect.asteroidSlowUntil = Math.max(effect.asteroidSlowUntil, state.time + 6);
+        showToast("Frozen: asteroides desacelerados por 6 segundos");
+      } else {
+        effect.playerSlowUntil = Math.max(effect.playerSlowUntil, state.time + 6);
+        showToast("Frozen: sua nave ficou mais lenta por 6 segundos");
+      }
+    } else if (this.type === "mystic") {
+      const options = ["damageBoostUntil", "rapidFireUntil", "multiShotUntil", "speedBoostUntil"];
+      const chosen = options[randomInt(0, options.length - 1)];
+      effect[chosen] = Math.max(effect[chosen], state.time + 8);
+      showToast(`Mystic: melhoria ${chosen} ativada por 8 segundos`);
+    } else if (this.type === "volcanic") {
+      if (Math.random() < 0.5) {
+        asteroids.filter(a => !a.dead).forEach(a => a.applyBurn(5));
+        showToast("Volcanic: asteroides atingidos por queimadura");
+      } else {
+        effect.volcanicPenaltyUntil = Math.max(effect.volcanicPenaltyUntil, state.time + 6);
+        showToast("Volcanic: seu dano foi reduzido por 6 segundos");
+      }
+    }
     playTone(760, 0.09, 0.035, "triangle");
   }
 

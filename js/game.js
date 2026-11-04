@@ -19,10 +19,6 @@ const state = {
   lastShot: -9999,
   shake: 0,
   flash: 0,
-  // pointerDown: false,
-  // pointerActive: false,
-  // pointerX: 0,
-  // pointerY: 0,
   runBanked: false,
   completionQueued: false,
   effects: null,
@@ -33,21 +29,20 @@ const state = {
   launch: null,
 };
 
-
-const stats = {
-  resistance: () => 1 * BALANCE.resistancePerLevel, // SAVE.upgrades_level.resistance * BALANCE.resistancePerLevel,
-  moveSpeed: () => BALANCE.baseMoveSpeed
-};
-
-let bullets = [];
 let asteroids = [];
 let particles = [];
-let cyberOrb = [];
-let enemyProjectiles = [];
 let pickups = [];
 let stars = [];
 let lastFrame = performance.now();
 let audioCtx = null;
+
+const collisions = new Collisions()
+    .group("player", () => [player])
+    .group("bullets", () => player.bullets)
+    .group("asteroids", () => asteroids)
+
+    .connect("bullets", "asteroids")
+    .connect("player", "asteroids");
 
 function resetEffects() {
   state.effects = {
