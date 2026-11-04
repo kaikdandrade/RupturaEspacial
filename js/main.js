@@ -34,6 +34,63 @@ const levelProgressBar = $("levelProgressBar");
 //   return Math.round(cfg.base * Math.pow(cfg.growth, save.upgrades[type]));
 // }
 
+const ships = [
+  { id: 1, src: 'assets/spaceship/spaceship_1.png', name: 'Nave Alpha', value: 0 },
+  { id: 2, src: 'assets/spaceship/spaceship_2.png', name: 'Nave Beta', value: 1800 },
+  { id: 3, src: 'assets/spaceship/spaceship_3.png', name: 'Nave Gamma', value: 3200 },
+  { id: 4, src: 'assets/spaceship/spaceship_4.png', name: 'Nave Suam', value: 10000 }
+];
+
+const state = {
+  mode: "menu",
+  time: 0,
+  score: 0,
+  runCoins: 0,
+  kills: 0,
+  totalDestroyed: 0,
+  levelConfig: null,
+  lastSpawn: 0,
+  lastShot: -9999,
+  shake: 0,
+  flash: 0,
+  runBanked: false,
+  completionQueued: false,
+  effects: null,
+  boss: null,
+  bossSummonTimer: 0,
+  waveEntered: false,
+  spawnPlan: null,
+  launch: null,
+};
+
+let asteroids = [];
+let particles = [];
+let pickups = [];
+let stars = [];
+let lastFrame = performance.now();
+let audioCtx = null;
+
+const collisions = new Collisions()
+    .group("player", () => [player])
+    .group("bullets", () => player.bullets)
+    .group("asteroids", () => asteroids)
+
+    .connect("bullets", "asteroids")
+    .connect("player", "asteroids");
+
+function resetEffects() {
+  state.effects = {
+    slowness: 0,
+    flame: 0,
+    quickShot: 0,
+    speedBoost: 0,
+    damageBoost: 0,
+    piercingShot: 0,
+    freeze: 0,
+    invulnerability: 0
+  };
+}
+
 function showScreen(id = null) {
   screens.forEach((screen) => screen.classList.toggle("active", !!id && screen.id === id));
   console.log(screens);
@@ -283,9 +340,18 @@ window.addEventListener("blur", () => {
     pauseGame();
 });
 
-// ----------------------------------------------------
+// Selecção de nível
+function changeSelectorLevel(delta) {
+  const next = clamp(SAVE.selectedLevel + delta, 1, SAVE.highestLevel + 10);
+  if (next === SAVE.selectedLevel) return;
+  SAVE.selectedLevel = next;
+  DATA.storeSave(SAVE);
+  levelLabel.innerHTML = next + ((next < SAVE.highestLevel) ? " Concluído" : (next % 5 === 0) ? " BOSS" : " Disponível");
+  prevShipButton.disabled = SAVE.selectedShip <= 0;
+  nextShipButton.disabled = SAVE.selectedShip >= ships.length - 1;
+}
+
 // Slider de seleção de nave
-// ----------------------------------------------------
 let currentShipIndex = 0;
 function sliderSelectorShip(index) {
   prevShipButton.disabled = currentShipIndex === 0;
@@ -325,26 +391,15 @@ playShipButton.addEventListener("click", () => {
   }, 2000);
 });
 
-// ----------------------------------------------------
-// Seleção de nível
-// ----------------------------------------------------
-function changeSelectorLevel(delta) {
-  const next = clamp(SAVE.selectedLevel + delta, 1, SAVE.highestLevel + 10);
-  if (next === SAVE.selectedLevel) return;
-  SAVE.selectedLevel = next;
-  DATA.storeSave(SAVE);
-  levelLabel.innerHTML = next + ((next < SAVE.highestLevel) ? " Concluído" : (next % 5 === 0) ? " BOSS" : " Disponível");
-  prevShipButton.disabled = SAVE.selectedShip <= 0;
-  nextShipButton.disabled = SAVE.selectedShip >= ships.length - 1;
-}
 prevLevelButton.addEventListener("click", () => changeSelectorLevel(-1));
 nextLevelButton.addEventListener("click", () => changeSelectorLevel(1));
 
-buttonCloseModals.forEach((btn) => btn.addEventListener('click', (e) => (btn.parentNode.parentNode)?.close()));
+buttonCloseModals.forEach((btn) => btn.addEventListener('click', _ => (btn.parentNode.parentNode)?.close()));
 rankingButton.addEventListener("click", () => showModal("ranking"));
 helpButton.addEventListener("click", () => showModal("help"));
-// $("pauseButton").addEventListener("click", () => togglePause(true));
-// $("resumeButton").addEventListener("click", () => togglePause(false));
+
+const pauseButton = $("pauseButton");
+pauseButton.addEventListener("click", () => pauseGame());
 // $("quitButton").addEventListener("click", quitRun);
 // $("retryButton").addEventListener("click", () =>
 //   startLevel(state.selectedLevel),
@@ -353,6 +408,6 @@ helpButton.addEventListener("click", () => showModal("help"));
 // $("completeMenuButton").addEventListener("click", showMenu);
 
 // Inicialização
-// resetEffects();
+resetEffects();
 resize();
 loadMenuUI();

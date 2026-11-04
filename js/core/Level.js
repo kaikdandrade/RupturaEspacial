@@ -3,7 +3,6 @@
 class Level {
   #defConfig() {
     const isLevelBoss = this.number % 5 === 0;
-    // const reward = (isBoss ? 180 : 80) + this.number * (isBoss ? 24 : 15);
     const enemies = {
       hp: {
         min: 1 + Math.floor((this.number - 1) * 0.72),
@@ -12,20 +11,14 @@ class Level {
       speed: 82 + Math.min(118, (this.number - 1) * 4.8),
     };
     const specialChance = Math.min(0.38, 0.08 + Math.max(0, this.number - 2) * 0.025);
-    // const bossHp = isBoss
-    //   ? Math.max(24, Math.round((maxHp + minHp) * (4.8 + bossCycle * 0.8)))
-    //   : 0;
-    // const helperCap = isBoss ? Math.min(11, 5 + Math.floor(this.number / 10)) : 0;
+    const helperCap = isLevelBoss ? Math.min(11, 5 + Math.floor(this.number / 10)) : 0;
 
     return {
       number: this.number,
       isLevelBoss,
-      //   reward,
       enemies,
       specialChance,
-      //   availableSpecials,
-      //   bossHp,
-      //   helperCap,
+      helperCap,
     };
   }
 
