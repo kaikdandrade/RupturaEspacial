@@ -1,5 +1,20 @@
 "use strict";
 
+const SCORE_TIME_LIMIT = 40;
+function scoreTime() {
+  const previousTime = state.playing.time;
+  state.playing.time += dt;
+
+  // Quantos segundos deste frame ainda são pontuáveis?
+  const rewardedTime = Math.max(
+    0,
+    Math.min(state.playing.time, SCORE_TIME_LIMIT) -
+    Math.min(previousTime, SCORE_TIME_LIMIT)
+  );
+
+  state.playing.score += rewardedTime * (level.number * 0.65);
+}
+
 function update(dt, now) {
   // Fundo de estrelas...
   const { h, w } = viewport();
@@ -22,44 +37,42 @@ function update(dt, now) {
   }
   particles = particles.filter((p) => p.life > 0);
 
-  // Lançamento (quando a nave mergulha)...
-  if (state.mode === "launching") {
-    player.updateLaunch(dt);
-    return;
+  switch (state.mode) {
+    // Lançamento (quando a nave mergulha)...
+    case "launching":
+      player.updateLaunch(dt);
+      break;
+    // Menu principal do jogo
+    case "menu":
+      updateMenuUI();
+      break;
+    // Jogo funcionando
+    case "playing":
+      scoreTime();
+
+      // if (state.levelConfig.isBoss) updateBossSummons(dt);
+      // else updateNormalSpawner(dt);
+      updateNormalSpawner(dt);
+
+      player.update(dt);
+      // applyGravityFields(dt);
+      asteroids.forEach((a) => a.update(dt));
+      // enemyProjectiles.forEach((p) => p.update(dt));
+      // pickups.forEach((p) => p.update(dt));
+
+      // Verifica as colisões após movimento
+      collisions.update();
+
+      // Remove objetos destruídos
+      asteroids = asteroids.filter(a => !a.dead);
+      // enemyProjectiles = enemyProjectiles.filter(p => !p.dead);
+      // pickups = pickups.filter((p) => !p.dead);
+
+      state.shake *= Math.pow(0.86, dt * 60);
+      state.flash = Math.max(0, state.flash - dt);
+      updateHud();
+      break;
   }
-
-  if (state.mode !== "playing") return;
-  updateHud();
-
-  // state.time += dt;
-  // state.score += dt * (4 + state.selectedLevel * 0.65);
-
-  // if (state.levelConfig.isBoss) updateBossSummons(dt);
-  // else updateNormalSpawner(dt);
-  updateNormalSpawner(dt);
-
-  // const wantsShoot = keys.has(" ") || keys.has("space") || state.pointerDown;
-  // if (wantsShoot) shoot(now);
-
-  player.update(dt);
-  // applyGravityFields(dt);
-  asteroids.forEach((a) => a.update(dt));
-  // enemyProjectiles.forEach((p) => p.update(dt));
-  // pickups.forEach((p) => p.update(dt));
-  // handleCollisions();
-
-  // Detecta colisões depois de movimentar os objetos
-  collisions.update();
-
-  // Remove objetos destruídos
-  asteroids = asteroids.filter(a => !a.dead);
-  // asteroids = asteroids.filter((a) => !a.dead);
-  // enemyProjectiles = enemyProjectiles.filter((p) => !p.dead);
-  // pickups = pickups.filter((p) => !p.dead);
-
-  // state.shake *= Math.pow(0.86, dt * 60);
-  // state.flash = Math.max(0, state.flash - dt);
-  // updateHud();
 }
 
 function drawBackground() {
