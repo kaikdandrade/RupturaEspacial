@@ -657,18 +657,26 @@ img {
             border: 1px solid var(--border);
             outline: none;
             justify-self: flex-end;
+            display: grid;
+            place-items: center;
+
+            img {
+                width: 50px;
+                height: 50px;
+                object-fit: contain;
+            }
         }
     }
 }
 
-.eyebrow {
+/* .eyebrow {
     display: inline-block;
     color: var(--cyan);
     font-size: 10px;
     font-weight: 950;
     letter-spacing: .2em;
     margin-bottom: 9px;
-}
+} */
 
 .modal {
     position: absolute;
