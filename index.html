@@ -47,7 +47,7 @@
           </button>
           <p class="level">
             <span>SETOR</span>
-            <strong id="level-info">1 DISPONÍVEL</strong>
+            <strong id="level-info">1 - "DISPONÍVEL"</strong>
           </p>
           <button id="next-level-button" class="arrow-button right" type="button" aria-label="Próximo nível">
             <img src="assets/icons/arrow_right.png" alt="Seta para direita" class="icon" />
@@ -98,51 +98,51 @@
 
         <div class="upgrade-strip" aria-label="Todas as melhorias">
           <!-- DANO -->
-          <button class="upgrade" data-type="damage" type="button" aria-label="Melhoria de dano da nave">
+          <button class="upgrade" id="damage-button" data-type="damage" type="button" aria-label="Melhoria de dano da nave">
             <div class="description">
               <div class="upgrade-icon">
                 <img src="assets/icons/damage.png" alt="Dano" />
               </div>
               <div class="flex col">
                 <strong>DANO</strong>
-                <span id="damageValue">1</span>
+                <span id="damage-value">1</span>
               </div>
-              <small class="upgrade-level">Nv. <span id="damageLevel">0</span></small>
+              <small class="upgrade-level">Nv. <span id="damage-level">0</span></small>
             </div>
             <div class="upgrade-cost">
               <span class="cost-label">APRIMORAR</span>
 
               <div class="cost-value">
                 <img src="assets/icons/sparks.png" alt="" />
-                <strong id="damageCost">100</strong>
+                <strong id="damage-cost">100</strong>
               </div>
             </div>
           </button>
 
           <!-- CADÊNCIA-->
-          <button class="upgrade" data-type="fireRate" type="button" aria-label="Melhoria de cadência de tiro da nave">
+          <button class="upgrade" id="fire-rate-button" type="button" aria-label="Melhoria de cadência de tiro da nave">
             <div class="description">
               <div class="upgrade-icon">
                 <img src="assets/icons/cadence.png" alt="" />
               </div>
               <div class="flex col">
                 <strong>CADÊNCIA</strong>
-                <span id="fireRateValue">340ms</span>
+                <span id="fire-rate-value">340ms</span>
               </div>
-              <small class="upgrade-level">Nv. <span id="fireRateLevel">0</span></small>
+              <small class="upgrade-level">Nv. <span id="fire-rate-level">0</span></small>
             </div>
             <div class="upgrade-cost">
               <span>APRIMORAR</span>
 
               <div class="cost-value">
                 <img src="assets/icons/sparks.png" alt="" />
-                <strong id="fireRateCost">100</strong>
+                <strong id="fire-rate-cost">100</strong>
               </div>
             </div>
           </button>
 
           <!-- RESISTÊNCIA -->
-          <button class="upgrade" data-type="resistance" type="button"
+          <button class="upgrade" id="resistance-button"data-type="resistance" type="button"
             aria-label="Melhoria de resistência do casco da nave">
             <div class="description">
               <div class="upgrade-icon">
@@ -150,16 +150,16 @@
               </div>
               <div class="flex col">
                 <strong>RESISTÊNCIA</strong>
-                <span id="resistanceValue">0</span>
+                <span id="resistance-value">0</span>
               </div>
-              <small class="upgrade-level">Nv. <span id="resistanceLevel">0</span></small>
+              <small class="upgrade-level">Nv. <span id="resistance-level">0</span></small>
             </div>
             <div class="upgrade-cost">
               <span>APRIMORAR</span>
 
               <div class="cost-value">
                 <img src="assets/icons/sparks.png" alt="" />
-                <strong id="resistenceCost">100</strong>
+                <strong id="resistance-cost">100</strong>
               </div>
             </div>
           </button>
@@ -183,7 +183,7 @@
         <span>PONTUAÇÃO</span><strong id="playScore">0</strong>
       </div>
       <button id="pauseButton" class="hub-button" type="button" aria-label="Pausar">
-        Ⅱ
+        <img src="assets/icons/pause2.png" alt="Ícone de pause" />
       </button>
     </section>
   </main>
@@ -326,10 +326,12 @@
     </dialog>
   </aside>
 
+  <script src="js/core/Collisions.js"></script>
+  <script src="js/entity/Effects.js"></script> 
+  <script src="js/core/metadata.js"></script>
   <script src="js/core/utils.js"></script>
   <script src="js/core/Data.js"></script>
   <script src="js/core/Level.js"></script>
-  <script src="js/core/Collisions.js"></script>
   <script src="js/entity/Player.js"></script>
   <script src="js/entity/Asteroid.js"></script>
   <script src="js/entity/PickupCard.js"></script>
