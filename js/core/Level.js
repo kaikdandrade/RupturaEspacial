@@ -23,14 +23,14 @@ class Level {
   }
 
   #defSpawnPlan() {
-    const target = Math.min(60, 10 + Math.floor((this.number - 1) * 1.35));
-    const batchMin = target >= 18 ? 2 : 1;
-    const batchMax = target >= 42 ? 5 : clamp(Math.ceil(Math.sqrt(target)), 4, 6);
+    const total = Math.min(60, 10 + Math.floor((this.number - 1) * 1.35));
+    const batchMin = total >= 18 ? 2 : 1;
+    const batchMax = total >= 42 ? 5 : clamp(Math.ceil(Math.sqrt(total)), 4, 6);
     const activeCap = clamp(batchMax + Math.floor(this.number / 8), 6, 14);
     const intervalMin = Math.max(1.25, 1.85 - this.number * 0.012);
     const intervalMax = Math.max(intervalMin + 0.3, 2.35 - this.number * 0.01);
     return {
-      total: target,
+      total: total,
       spawned: 0,
       batchMin,
       batchMax,
@@ -44,30 +44,35 @@ class Level {
   set(nlevel = 1) {
     this.number = nlevel;
     const config = this.#defConfig();
-    Object.assign(state, {
-      time: 0,
-      score: 0,
-      runCoins: 0,
-      kills: 0,
-      totalDestroyed: 0,
-      selectedLevel: nlevel,
-      levelConfig: config,
 
+    Object.assign(state, {
+      playing: {
+        time: 0,
+        score: 0,
+        effects: effects.reset(),
+        kills: {
+          total: 0,
+          common: 0,
+          freeze: 0,
+          mystic: 0,
+          vulcanic: 0,
+          thorny: 0,
+          cyber: 0,
+          gravity: 0,
+          resistance: 0,
+          fractional: 0,
+          fractionalSlice: 0,
+        },
+      },
+      levelConfig: config,
+      spawnPlan: this.#defSpawnPlan(config),
+      // waveEntered: false,
+      lastSpawn: 0,
       lastShot: -9999,
       shake: 0,
       flash: 0,
-
-      runBanked: false,
-      completionQueued: false,
-
-      pointerDown: false,
-      pointerActive: false,
-
-      boss: null,
+      // boss: null,
       bossSummonTimer: 0,
-
-      spawnPlan: this.#defSpawnPlan(config),
-      launch: null,
     });
   }
 }

@@ -1,18 +1,5 @@
 "use strict";
 
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d", { alpha: true });
-const $ = (id) => document.getElementById(id);
-
-const BALANCE = {
-  baseFireInterval: 240,
-  minFireInterval: 68,
-  resistancePerLevel: 10,
-  baseMoveSpeed: 390,
-  upgradeCosts: { base: 100, growth: 1.6 },
-  cardsLifetime: 10,
-};
-
 function playTone(freq = 440, duration = 0.04, volume = 0.03, type = "sine") {
   try {
     audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();

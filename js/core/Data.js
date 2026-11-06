@@ -10,6 +10,18 @@ class Data {
     highestLevel: 1,
     selectedLevel: 1,
     upgrades_level: { damage: 0, fireRate: 0, resistance: 0 },
+    kills: {
+      common: 0,
+      freeze: 0,
+      mystic: 0,
+      vulcanic: 0,
+      thorny: 0,
+      cyber: 0,
+      gravity: 0,
+      resistance: 0,
+      fractional: 0,
+      fractionalSlice: 0,
+    },
   };
 
   loadSave() {
