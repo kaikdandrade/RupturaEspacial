@@ -43,12 +43,14 @@ class Player {
   #isShooting = false;
   #lastShotTime = 0;
   #bullets = [];
-  #FIRE_RATE = Math.max(
-    BALANCE.minFireInterval,
-    Math.round(
-      BALANCE.baseFireInterval * Math.pow(0.89, SAVE.upgrades_level.fireRate),
-    ),
-  );
+  // #FIRE_RATE = Math.max(
+  //   BALANCE.minFireInterval,
+  //   Math.round(
+  //     BALANCE.baseFireInterval * Math.pow(0.89, SAVE.upgrades_level.fireRate),
+  //   ),
+  // );
+  #shoots = 1;
+  #FIRE_RATE = 340;
   #ACTION_KEYS = [
     "arrowup",
     "arrowdown",
@@ -66,11 +68,15 @@ class Player {
     const { w, h } = viewport();
     this.x = w / 2;
     this.y = h - 90;
-    this.radius = 21;
+    this.radius = 27;
     this.width = 66;
     this.height = 66;
     this.image = loadImage(ASSETS.ships[this.#skinIndex]);
     ((this.resistance = 0), (this.maxResistance = this.resistance));
+    this.vx = 0;
+    this.vy = 0;
+    this.acceleration = 1000;
+    this.drag = 2.4;
     this.invuln = 0;
     this.hitbox = new Hitbox(this, this.radius);
 
@@ -80,12 +86,11 @@ class Player {
 
       console.log("Nave atingida por um asteroide!");
 
-      this.invuln = 0.7;
+      // this.invuln = 0.7;
       // Aqui você poderá implementar o dano da nave.
     };
 
     this.hitbox.on("enter", onAsteroidContact);
-    this.hitbox.on("stay", onAsteroidContact);
     window.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
       if (this.#ACTION_KEYS.includes(key)) {
@@ -102,36 +107,118 @@ class Player {
     });
   }
 
-  entrou() {
-    console.log("Algo colidiu com o player!");
-  }
 
   update(dt) {
-    // Tiro da nave
-    if ((this.#keys.has("enter") || this.#keys.has(" ")) || this.#isShooting) this.shoot();
-    this.#bullets.forEach((b) => b.update(dt));
+    // ========================================
+    // TIROS
+    // ========================================
+
+    if (
+      this.#keys.has("enter") ||
+      this.#keys.has(" ") ||
+      this.#isShooting
+    ) {
+      this.shoot();
+    }
+
+    this.#bullets.forEach(b => b.update(dt));
     this.#bullets = this.#bullets.filter(b => !b.dead);
 
-    // Movimentação da nave
+    // ========================================
+    // MOVIMENTAÇÃO
+    // ========================================
+
     const { w, h } = viewport();
-    const speed = BALANCE.baseMoveSpeed;
+    const maxSpeed = BALANCE.baseMoveSpeed;
+
+    // Direção desejada pelo jogador
     let dx = 0;
     let dy = 0;
 
-    if (this.#keys.has("arrowleft") || this.#keys.has("a")) dx -= 1;
-    if (this.#keys.has("arrowright") || this.#keys.has("d")) dx += 1;
-    if (this.#keys.has("arrowup") || this.#keys.has("w")) dy -= 1;
-    if (this.#keys.has("arrowdown") || this.#keys.has("s")) dy += 1;
+    if (this.#keys.has("arrowleft") || this.#keys.has("a")) dx--;
+    if (this.#keys.has("arrowright") || this.#keys.has("d")) dx++;
+    if (this.#keys.has("arrowup") || this.#keys.has("w")) dy--;
+    if (this.#keys.has("arrowdown") || this.#keys.has("s")) dy++;
 
-    // Normalização da velocidade quando nave em diagonal
-    if (dx || dy) {
-      const len = Math.hypot(dx, dy) || 1;
-      this.x += (dx / len) * speed * dt;
-      this.y += (dy / len) * speed * dt;
+    // ========================================
+    // ACELERAÇÃO E INÉRCIA
+    // ========================================
+
+    if (dx !== 0 || dy !== 0) {
+      // Normaliza a direção diagonal
+      const length = Math.hypot(dx, dy);
+
+      dx /= length;
+      dy /= length;
+
+      // Aplica a aceleração
+      this.vx += dx * this.acceleration * dt;
+      this.vy += dy * this.acceleration * dt;
+
+    } else {
+      // Desaceleração gradual sem teclas pressionadas
+      const damping = Math.exp(-this.drag * dt);
+
+      this.vx *= damping;
+      this.vy *= damping;
+
+      // Evita velocidades residuais muito pequenas
+      if (Math.abs(this.vx) < 0.5) this.vx = 0;
+      if (Math.abs(this.vy) < 0.5) this.vy = 0;
     }
 
-    this.x = clamp(this.x, this.radius + 7, w - this.radius - 14);
-    this.y = clamp(this.y, 80, h - this.radius - 9);
+    // ========================================
+    // LIMITE DE VELOCIDADE
+    // ========================================
+
+    const currentSpeed = Math.hypot(this.vx, this.vy);
+
+    if (currentSpeed > maxSpeed) {
+      const factor = maxSpeed / currentSpeed;
+
+      this.vx *= factor;
+      this.vy *= factor;
+    }
+
+    // ========================================
+    // ATUALIZAÇÃO DA POSIÇÃO
+    // ========================================
+
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+
+    // ========================================
+    // LIMITES DA ARENA
+    // ========================================
+
+    const margin = this.radius + 8;
+
+    const minX = margin;
+    const maxX = Math.max(minX, w - margin);
+    const minY = margin;
+    const maxY = Math.max(minY, h - margin);
+
+    if (this.x < minX) {
+      this.x = minX;
+      if (this.vx < 0) this.vx = 0;
+    }
+
+    if (this.x > maxX) {
+      this.x = maxX;
+      if (this.vx > 0) this.vx = 0;
+    }
+
+    if (this.y < minY) {
+      this.y = minY;
+      if (this.vy < 0) this.vy = 0;
+    }
+
+    if (this.y > maxY) {
+      this.y = maxY;
+      if (this.vy > 0) this.vy = 0;
+    }
+
+    // Invulnerabilidade
     // this.invuln = Math.max(0, this.invuln - dt);
   }
 
@@ -165,12 +252,12 @@ class Player {
       const scaledHeight = this.height * minScale;
       const entryY = h + scaledHeight;
       this.y = entryY + (this.#launch.endY - entryY) * e;
-      this.#launch.scale = minScale + (1 - minScale) * e;
+      this.#launch.scale = minScale + (1.25 - minScale) * e;
     }
 
     if (t >= 1) {
       this.y = this.#launch.endY;
-      this.#launch.scale = 1;
+      this.#launch.scale = 1.25;
     }
   }
 
@@ -224,17 +311,40 @@ class Player {
     this.image = loadImage(ASSETS.ships[this.#skinIndex]);
   }
 
+  setShoots(n) {
+    this.#shoots = n;
+  }
+
   shoot() {
     const now = performance.now();
     if (now - this.#lastShotTime >= this.#FIRE_RATE) {
       this.#lastShotTime = now;
-      this.#bullets.push(new Bullet(player.x, player.y - 29, 0));
-
-      // Tiro Triplo
-      // bullets.push(new Bullet(player.x - 9, player.y - 25, -105));
-      // bullets.push(new Bullet(player.x, player.y - 31, 0));
-      // bullets.push(new Bullet(player.x + 9, player.y - 25, 105));
-      playTone(560, 0.035, 0.018, "square");
+      playTone(560, 0.035, 0.018, "square"); // SOM do tiro
+      switch (this.#shoots) {
+        case 4:
+          // Tiro Quádruplo
+          this.#bullets.push(new Bullet(player.x - 12, player.y - 25, -135));
+          this.#bullets.push(new Bullet(player.x - 4, player.y - 31, -45));
+          this.#bullets.push(new Bullet(player.x + 4, player.y - 31, 45));
+          this.#bullets.push(new Bullet(player.x + 12, player.y - 25, 135));
+          break;
+        case 3:
+          // Tiro Triplo
+          this.#bullets.push(new Bullet(player.x - 9, player.y - 25, -105));
+          this.#bullets.push(new Bullet(player.x, player.y - 31, 0));
+          this.#bullets.push(new Bullet(player.x + 9, player.y - 25, 105));
+          break;
+        case 2:
+          // Tiro Duplo
+          this.#bullets.push(new Bullet(player.x - 6, player.y - 29, -45));
+          this.#bullets.push(new Bullet(player.x + 6, player.y - 29, 45));
+          break;
+        case 1:
+        default:
+          // Tiro Simples
+          this.#bullets.push(new Bullet(player.x, player.y - 29, 0));
+          break;
+      }
     }
   }
 
