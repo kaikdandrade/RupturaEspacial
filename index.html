@@ -98,7 +98,8 @@
 
         <div class="upgrade-strip" aria-label="Todas as melhorias">
           <!-- DANO -->
-          <button class="upgrade" id="damage-button" data-type="damage" type="button" aria-label="Melhoria de dano da nave">
+          <button class="upgrade" id="damage-button" data-type="damage" type="button"
+            aria-label="Melhoria de dano da nave">
             <div class="description">
               <div class="upgrade-icon">
                 <img src="assets/icons/damage.png" alt="Dano" />
@@ -142,7 +143,7 @@
           </button>
 
           <!-- RESISTÊNCIA -->
-          <button class="upgrade" id="resistance-button"data-type="resistance" type="button"
+          <button class="upgrade" id="resistance-button" data-type="resistance" type="button"
             aria-label="Melhoria de resistência do casco da nave">
             <div class="description">
               <div class="upgrade-icon">
@@ -193,15 +194,78 @@
     <!-- PAUSE -->
     <dialog id="pause" class="modal" aria-label="Jogo pausado">
       <header class="modal-header">
-        <h2 class="title">Fase pausada</h2>
+        <h2 class="title">Jogo Pausada</h2>
+        <span class="eyebrown">Fase 1</span>
       </header>
 
-      <span class="eyebrow">PAUSA</span>
+      <div class="modal-content">
+        <section class="pause-section">
+          <h3>Resumo da partida</h3>
 
-      <footer class="modal-footer">
-        <button id="resumeButton" class="btn" type="button">Continuar</button>
-        <button id="quitButton" class="btn" type="button">Menu Principal</button>
-      </footer>
+          <div class="pause-stats">
+            <div class="stat">
+              <span>Pontuação</span>
+              <strong id="pauseScore">0</strong>
+            </div>
+
+            <div class="stat">
+              <span>Asteroides destruídos</span>
+              <strong id="pauseKills">0</strong>
+            </div>
+
+            <div class="stat">
+              <span>Tempo</span>
+              <strong id="pauseTime">00:00</strong>
+            </div>
+
+            <div class="stat">
+              <span>Resistência da Nave</span>
+              <strong id="pauseResistance">0</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="pause-section">
+          <h3>Controles</h3>
+
+          <div class="control-row">
+            <span>Movimentar</span>
+
+            <div class="control-keys">
+              <div class="key-cluster key-cluster--wasd">
+                <kbd class="key key--w">W</kbd>
+                <kbd class="key key--a">A</kbd>
+                <kbd class="key key--s">S</kbd>
+                <kbd class="key key--d">D</kbd>
+              </div>
+
+              <span class="key-separator">ou</span>
+
+              <div class="key-cluster key-cluster--arrows">
+                <kbd class="key key--up">↑</kbd>
+                <kbd class="key key--left">←</kbd>
+                <kbd class="key key--down">↓</kbd>
+                <kbd class="key key--right">→</kbd>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <span>Atirar</span>
+
+            <div class="control-keys">
+              <kbd class="key key--wide">ESPAÇO</kbd>
+              <span class="key-separator">ou</span>
+              <kbd class="key key--wide">ENTER</kbd>
+            </div>
+          </div>
+        </section>
+
+        <footer class="modal-footer">
+          <button id="resumeButton" class="btn" type="button">Continuar</button>
+          <button id="restartButton" class="btn" type="button">Reiniciar</button>
+          <button id="quitButton" class="btn" type="button">Menu Principal</button>
+        </footer>
     </dialog>
 
     <dialog id="levelCompleted" class="modal" aria-label="Nível concluído">
@@ -209,16 +273,17 @@
       <h2>Nível <span id="completeLevel">1</span> concluído!</h2>
       <div class="result-grid">
         <div>Pontuação</div>
-        <!-- <div><span>Destruídos</span><strong id="completeDestroyed">0</strong></div> -->
-        <!-- <div><span>Da fase</span><strong id="completeCoins">+0 ✦</strong></div> -->
-        <!-- <div><span>Bônus</span><strong id="completeBonus">+0 ✦</strong></div> -->
-        <!-- <div><span>Próximo</span><strong id="completeNext">2</strong></div> -->
+        <div><span>Destruídos</span><strong id="completeDestroyed">0</strong></div>
+        <div><span>Centelhas</span><strong id="completeBonus">+0 ✦</strong></div>
       </div>
-      <button id="nextLevelPlayButton" class="btn btn--primary" type="button">
-        Jogar próximo nível
-      </button>
       <button id="completeMenuButton" class="btn" type="button">
         Voltar ao hangar
+      </button>
+      <button id="completeMenuButton" class="btn" type="button">
+        Jogar Novamente
+      </button>
+      <button id="nextLevelPlayButton" class="btn btn--primary" type="button">
+        Jogar próximo nível
       </button>
     </dialog>
 
@@ -327,7 +392,7 @@
   </aside>
 
   <script src="js/core/Collisions.js"></script>
-  <script src="js/entity/Effects.js"></script> 
+  <script src="js/entity/Effects.js"></script>
   <script src="js/core/metadata.js"></script>
   <script src="js/core/utils.js"></script>
   <script src="js/core/Data.js"></script>
