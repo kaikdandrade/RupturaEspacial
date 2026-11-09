@@ -1,7 +1,6 @@
 "use strict";
 
-const SCORE_TIME_LIMIT = 40;
-function scoreTime() {
+function scoreTime(dt) {
   const previousTime = state.playing.time;
   state.playing.time += dt;
 
@@ -15,7 +14,7 @@ function scoreTime() {
   state.playing.score += rewardedTime * (level.number * 0.65);
 }
 
-function update(dt, now) {
+function update(dt) {
   // Fundo de estrelas...
   const { h, w } = viewport();
   for (const star of stars) {
@@ -46,13 +45,15 @@ function update(dt, now) {
     case "menu":
       updateMenuUI();
       break;
+    case "gameover":
+      break;
     // Jogo funcionando
     case "playing":
-      scoreTime();
+      const lConfig = state.levelConfig;
+      scoreTime(dt);
 
-      // if (state.levelConfig.isBoss) updateBossSummons(dt);
-      // else updateNormalSpawner(dt);
-      updateNormalSpawner(dt);
+      if (lConfig.isLevelBoss) updateBossSummons(dt);
+      else updateNormalSpawner(dt);
 
       player.update(dt);
       // applyGravityFields(dt);
@@ -67,6 +68,19 @@ function update(dt, now) {
       asteroids = asteroids.filter(a => !a.dead);
       // enemyProjectiles = enemyProjectiles.filter(p => !p.dead);
       // pickups = pickups.filter((p) => !p.dead);
+
+      // Verifica se todos os asteroides da fase foram destruídos
+      const plan = state.spawnPlan;
+
+      const todosSpawnados = plan && plan.spawned >= plan.total;
+      const todosDestruidos = plan && state.playing.kills.total >= plan.total;
+      const arenaLimpa = asteroids.length === 0;
+      console.log(todosSpawnados, todosDestruidos, arenaLimpa)
+
+      if (todosSpawnados && todosDestruidos && arenaLimpa) {
+        state.mode = "complete";
+        showModal("levelCompleted");
+      }
 
       state.shake *= Math.pow(0.86, dt * 60);
       state.flash = Math.max(0, state.flash - dt);
@@ -100,18 +114,17 @@ function drawBackground() {
 }
 
 function drawArenaField() {
-  // if (!state.levelConfig) return;
+  if (!state.levelConfig) return;
+  const boss = state.levelConfig.isLevelBoss;
   const { w, h } = viewport();
   const x = 9;
   const y = 78;
   const width = Math.max(30, w - 18);
   const height = Math.max(50, h - 88);
   ctx.save();
-  // const boss = state.levelConfig.isBoss;
-  ctx.strokeStyle = "rgba(115, 164, 255, .1)";
-  // ctx.strokeStyle = boss
-  //   ? "rgba(255, 193, 91, .13)"
-  //   : "rgba(115, 164, 255, .1)";
+  ctx.strokeStyle = boss
+    ? "rgba(255, 193, 91, .13)"
+    : "rgba(115, 164, 255, .1)";
   ctx.lineWidth = 1.25;
   ctx.setLineDash([8, 12]);
   roundedRectPath(x, y, width, height, 26);
@@ -119,10 +132,10 @@ function drawArenaField() {
   ctx.setLineDash([]);
   ctx.globalAlpha = 0.6;
   const glow = ctx.createLinearGradient(0, y, 0, y + 80);
-  // glow.addColorStop(
-  // 0,
-  // boss ? "rgba(255, 180, 61, .055)" : "rgba(91, 142, 255, .045)",
-  // );
+  glow.addColorStop(
+    0,
+    boss ? "rgba(255, 180, 61, .055)" : "rgba(91, 142, 255, .045)",
+  );
   glow.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(x + 12, y + 1, width - 24, 90);
@@ -167,36 +180,36 @@ function draw() {
     ctx.fillRect(0, 0, w, h);
   }
 
-  function debugHitbox(hitbox, color = "#00ff00") {
-    ctx.save();
+  // function debugHitbox(hitbox, color = "#00ff00") {
+  //   ctx.save();
 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
+  //   ctx.strokeStyle = color;
+  //   ctx.lineWidth = 1.5;
 
-    ctx.beginPath();
-    ctx.arc(
-      hitbox.x,
-      hitbox.y,
-      hitbox.radius,
-      0,
-      Math.PI * 2
-    );
-    ctx.stroke();
+  //   ctx.beginPath();
+  //   ctx.arc(
+  //     hitbox.x,
+  //     hitbox.y,
+  //     hitbox.radius,
+  //     0,
+  //     Math.PI * 2
+  //   );
+  //   ctx.stroke();
 
-    ctx.restore();
-  }
+  //   ctx.restore();
+  // }
 
-  if (state.mode === "playing") {
-    debugHitbox(player.hitbox, "#00ff00");
+  // if (state.mode === "playing") {
+  //   debugHitbox(player.hitbox, "#00ff00");
 
-    asteroids.forEach(a => {
-      debugHitbox(a.hitbox, "#ff0000");
-    });
+  //   asteroids.forEach(a => {
+  //     debugHitbox(a.hitbox, "#ff0000");
+  //   });
 
-    player.bullets.forEach(b => {
-      if (!b.dead) debugHitbox(b.hitbox, "#00ffff");
-    });
-  }
+  //   player.bullets.forEach(b => {
+  //     if (!b.dead) debugHitbox(b.hitbox, "#00ffff");
+  //   });
+  // }
 }
 
 function loop(now) {

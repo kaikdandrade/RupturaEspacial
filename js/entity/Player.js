@@ -8,10 +8,7 @@ class Bullet {
     this.vy = -770;
     this.radius = 3.5;
     this.dead = false;
-    this.damage = Math.max(
-      0,
-      1 + SAVE.upgrades_level.damage //+ effectDamageBonus() - effectDamagePenalty(),
-    );
+    this.damage = SAVE.upgrades_level.damage * BALANCE.damagePerLevel + 1;
     this.hitbox = new Hitbox(this, this.radius);
   }
 
@@ -43,14 +40,7 @@ class Player {
   #isShooting = false;
   #lastShotTime = 0;
   #bullets = [];
-  // #FIRE_RATE = Math.max(
-  //   BALANCE.minFireInterval,
-  //   Math.round(
-  //     BALANCE.baseFireInterval * Math.pow(0.89, SAVE.upgrades_level.fireRate),
-  //   ),
-  // );
   #shoots = 1;
-  #FIRE_RATE = 340;
   #ACTION_KEYS = [
     "arrowup",
     "arrowdown",
@@ -68,26 +58,44 @@ class Player {
     const { w, h } = viewport();
     this.x = w / 2;
     this.y = h - 90;
+    this.vx = 0;
+    this.vy = 0;
     this.radius = 27;
     this.width = 66;
     this.height = 66;
     this.image = loadImage(ASSETS.ships[this.#skinIndex]);
-    ((this.resistance = 0), (this.maxResistance = this.resistance));
-    this.vx = 0;
-    this.vy = 0;
+    this.resistance = SAVE.upgrades_level.resistance * BALANCE.resistancePerLevel;
+    this.maxResistance = this.resistance;
+    this.shieldProgress = 0;
+    this.shieldDisplayedResistance = 0;
     this.acceleration = 1000;
     this.drag = 2.4;
+    this.fireRate = BALANCE.baseFireInterval - (SAVE.upgrades_level.fireRate * BALANCE.fireRatePerLevel);
     this.invuln = 0;
-    this.hitbox = new Hitbox(this, this.radius);
+    this.hitbox = new Hitbox(this, (this.resistance) ? this.radius * 2 + 4 : this.radius);
 
     const onAsteroidContact = ({ other, group }) => {
       if (group !== "asteroids") return;
       if (this.invuln > 0 || other.dead) return;
 
-      console.log("Nave atingida por um asteroide!");
+      // Próximo impacto após perder o escudo = Game Over
+      if (this.resistance <= 0) {
+        state.mode = "gameover";
+        showModal(state.mode);
+        return;
+      }
 
-      // this.invuln = 0.7;
-      // Aqui você poderá implementar o dano da nave.
+      const damage = Math.max(0, Number(other.hp) || 0); // Dano ao PLayer pelo impacto
+      other.destroy(); // Destrói o asteroide
+      this.resistance = Math.max(0, this.resistance - damage); // Aplica o dano à resistência
+
+      // Quando o escudo acaba, restaura a hitbox original
+      if (this.resistance <= 0) {
+        this.hitbox = new Hitbox(this, this.radius);
+
+        // Registra novamente o evento de colisão
+        this.hitbox.on("enter", onAsteroidContact);
+      }
     };
 
     this.hitbox.on("enter", onAsteroidContact);
@@ -107,43 +115,53 @@ class Player {
     });
   }
 
-
   update(dt) {
-    // ========================================
     // TIROS
-    // ========================================
-
-    if (
-      this.#keys.has("enter") ||
-      this.#keys.has(" ") ||
-      this.#isShooting
-    ) {
+    if (["enter", " "].includes([...this.#keys]) || this.#isShooting)
       this.shoot();
-    }
-
     this.#bullets.forEach(b => b.update(dt));
     this.#bullets = this.#bullets.filter(b => !b.dead);
 
     // ========================================
-    // MOVIMENTAÇÃO
+    // ANIMAÇÃO DE ATIVAÇÃO E DESATIVAÇÃO DO ESCUDO
     // ========================================
+    const shieldActive = Number.isFinite(this.resistance) && this.resistance > 0;
+    const target = shieldActive ? 1 : 0;
+    const duration = shieldActive ? 0.22 : 0.32;
+    const step = dt / duration;
 
+    if (this.shieldProgress < target)
+      this.shieldProgress = Math.min(
+        target,
+        this.shieldProgress + step
+      );
+    else if (this.shieldProgress > target)
+      this.shieldProgress = Math.max(
+        target,
+        this.shieldProgress - step
+      );
+
+    // Guarda o último valor para exibir durante a animação
+    // de desaparecimento.
+    if (shieldActive) {
+      this.shieldDisplayedResistance = Math.ceil(this.resistance);
+    }
+
+    // ============================
+    // MOVIMENTAÇÃO
+    // ============================
     const { w, h } = viewport();
     const maxSpeed = BALANCE.baseMoveSpeed;
 
     // Direção desejada pelo jogador
     let dx = 0;
     let dy = 0;
-
     if (this.#keys.has("arrowleft") || this.#keys.has("a")) dx--;
     if (this.#keys.has("arrowright") || this.#keys.has("d")) dx++;
     if (this.#keys.has("arrowup") || this.#keys.has("w")) dy--;
     if (this.#keys.has("arrowdown") || this.#keys.has("s")) dy++;
 
-    // ========================================
     // ACELERAÇÃO E INÉRCIA
-    // ========================================
-
     if (dx !== 0 || dy !== 0) {
       // Normaliza a direção diagonal
       const length = Math.hypot(dx, dy);
@@ -167,32 +185,20 @@ class Player {
       if (Math.abs(this.vy) < 0.5) this.vy = 0;
     }
 
-    // ========================================
     // LIMITE DE VELOCIDADE
-    // ========================================
-
     const currentSpeed = Math.hypot(this.vx, this.vy);
-
     if (currentSpeed > maxSpeed) {
       const factor = maxSpeed / currentSpeed;
-
       this.vx *= factor;
       this.vy *= factor;
     }
 
-    // ========================================
     // ATUALIZAÇÃO DA POSIÇÃO
-    // ========================================
-
     this.x += this.vx * dt;
     this.y += this.vy * dt;
 
-    // ========================================
     // LIMITES DA ARENA
-    // ========================================
-
     const margin = this.radius + 8;
-
     const minX = margin;
     const maxX = Math.max(minX, w - margin);
     const minY = margin;
@@ -261,14 +267,136 @@ class Player {
     }
   }
 
-  draw(alpha = 1) {
+  draw() {
     this.#bullets.forEach((b) => b.draw());
     const { width, height, image } = this;
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.scale(this.#launch.scale, this.#launch.scale);
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = 1;
     drawSprite(image, -width / 2, -height / 2, width, height);
+    if (state.mode != "launching") this.drawShield();
+    ctx.restore();
+  }
+
+  drawShield() {
+    const resistance = Math.max(0, Number(this.resistance) || 0);
+    const maxResistance = Number(this.maxResistance);
+
+    if (!Number.isFinite(maxResistance) || maxResistance <= 0) return;
+
+    const progress = Number.isFinite(this.shieldProgress)
+      ? Math.max(0, Math.min(1, this.shieldProgress))
+      : (resistance > 0 ? 1 : 0);
+
+    if (progress <= 0) return;
+
+    const time = state.playing?.time ?? 0;
+    const parentAlpha = ctx.globalAlpha;
+
+    // ========================================
+    // QUANTIDADE DE ARCOS
+    // ========================================
+    const ratio = Math.min(1, resistance / maxResistance);
+    const arcCount = resistance > 0
+      ? Math.min(3, Math.ceil(ratio * 3 - Number.EPSILON))
+      : 0;
+
+    // Oscilação quando resta apenas o último arco
+    const critical = arcCount === 1;
+    const oscillation = critical
+      ? (Math.sin(time * 4.5) + 1) / 2
+      : 0;
+
+    // ========================================
+    // COR E OPACIDADE
+    // ========================================
+    const blue = { r: 145, g: 239, b: 255 };
+    const warning = { r: 255, g: 105, b: 150 };
+
+    const colorMix = critical
+      ? 0.15 + oscillation * 0.75
+      : 0;
+
+    const mix = (a, b) =>
+      Math.round(a + (b - a) * colorMix);
+
+    const r = mix(blue.r, warning.r);
+    const g = mix(blue.g, warning.g);
+    const b = mix(blue.b, warning.b);
+
+    const shieldColor = `rgb(${r}, ${g}, ${b})`;
+
+    const fieldOpacity = critical
+      ? 0.35 + oscillation * 0.5
+      : 0.82;
+
+    const arcOpacity = critical
+      ? 0.3 + oscillation * 0.65
+      : 0.8;
+
+    const radius = this.radius + 10;
+    ctx.save();
+
+    // ========================================
+    // CAMPO DE FORÇA
+    // ========================================
+    const fillOpacity = critical
+      ? 0.02 + oscillation * 0.045
+      : 0.055;
+
+    const gradient = ctx.createRadialGradient(
+      0, 0, this.radius * 0.35,
+      0, 0, radius + 5
+    );
+
+    gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
+    gradient.addColorStop(0.72, `rgba(${r}, ${g}, ${b}, ${fillOpacity})`);
+    gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+
+    // Preenchimento
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+
+    ctx.globalAlpha = parentAlpha * progress;
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // Contorno
+    ctx.globalAlpha = parentAlpha * progress * fieldOpacity;
+    ctx.strokeStyle = shieldColor;
+    ctx.lineWidth = 1.8;
+    ctx.shadowColor = shieldColor;
+    ctx.shadowBlur = critical
+      ? 12 + oscillation * 8
+      : 12;
+
+    ctx.stroke();
+
+    // ========================================
+    // ARCOS DE ENERGIA
+    // ========================================
+    ctx.globalAlpha = parentAlpha * progress * arcOpacity;
+    ctx.strokeStyle = shieldColor;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.shadowColor = shieldColor;
+    ctx.shadowBlur = critical
+      ? 8 + oscillation * 10
+      : 0;
+
+    const rotation = time * 0.8;
+    const spacing = (Math.PI * 2) / 3;
+
+    for (let i = 0; i < arcCount; i++) {
+      const start = rotation + i * spacing;
+      const end = start + 0.65;
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius + 3, start, end);
+      ctx.stroke();
+    }
+
     ctx.restore();
   }
 
@@ -317,27 +445,27 @@ class Player {
 
   shoot() {
     const now = performance.now();
-    if (now - this.#lastShotTime >= this.#FIRE_RATE) {
+    if (now - this.#lastShotTime >= this.fireRate) {
       this.#lastShotTime = now;
       playTone(560, 0.035, 0.018, "square"); // SOM do tiro
       switch (this.#shoots) {
         case 4:
           // Tiro Quádruplo
-          this.#bullets.push(new Bullet(player.x - 12, player.y - 25, -135));
-          this.#bullets.push(new Bullet(player.x - 4, player.y - 31, -45));
-          this.#bullets.push(new Bullet(player.x + 4, player.y - 31, 45));
-          this.#bullets.push(new Bullet(player.x + 12, player.y - 25, 135));
+          this.#bullets.push(new Bullet(player.x - 6, player.y - 12, -58));
+          this.#bullets.push(new Bullet(player.x - 2, player.y - 15, -22));
+          this.#bullets.push(new Bullet(player.x + 2, player.y - 15, 22));
+          this.#bullets.push(new Bullet(player.x + 6, player.y - 12, 58));
           break;
         case 3:
           // Tiro Triplo
-          this.#bullets.push(new Bullet(player.x - 9, player.y - 25, -105));
-          this.#bullets.push(new Bullet(player.x, player.y - 31, 0));
-          this.#bullets.push(new Bullet(player.x + 9, player.y - 25, 105));
+          this.#bullets.push(new Bullet(player.x - 3, player.y - 12, -52));
+          this.#bullets.push(new Bullet(player.x, player.y - 15, 0));
+          this.#bullets.push(new Bullet(player.x + 3, player.y - 12, 52));
           break;
         case 2:
           // Tiro Duplo
-          this.#bullets.push(new Bullet(player.x - 6, player.y - 29, -45));
-          this.#bullets.push(new Bullet(player.x + 6, player.y - 29, 45));
+          this.#bullets.push(new Bullet(player.x - 3, player.y - 15, -22));
+          this.#bullets.push(new Bullet(player.x + 3, player.y - 15, 22));
           break;
         case 1:
         default:

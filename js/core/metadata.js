@@ -3,13 +3,14 @@
 // ============================================================
 // RUPTURA ESPACIAL - Versão 1.0
 // ============================================================
-
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d", { alpha: true });
 const $ = (id) => document.getElementById(id);
 
+const GROWTH_SPAWN = 5;
+const SCORE_TIME_LIMIT = 40;
 const LEVEL_UNLOCK_SPECIALS = 5;
-const SPECIALS_ASTEROIDS = ["vulcanic", "frozen", "mystic"]; //, "fractional"];
+const SPECIALS_ASTEROIDS = ["volcanic", "frozen", "mystic"]; //, "fractional"];
 const BOSSES_ASTEROIDS = ["resistance", "gravity", "thorny", "cyber"];
 
 const screens = [...document.querySelectorAll(".screen")];
@@ -46,6 +47,7 @@ const resistanceValue = $("resistance-value");
 const resistanceLevel = $("resistance-level");
 const resistanceCost = $("resistance-cost");
 const pauseButton = $("pauseButton");
+const resumeButton = $("resumeButton");
 
 const SHIPS = [
   { id: 1, src: "assets/spaceship/spaceship_1.png", name: "Nave Alpha", value: 0, shoots: 1 },
@@ -56,9 +58,9 @@ const SHIPS = [
 
 const BALANCE = {
   baseFireInterval: 340,
-  minFireInterval: 70,
+  minFireInterval: 100,
   damagePerLevel: 1,
-  fireRatePerLevel: 10,
+  fireRatePerLevel: 5,
   resistancePerLevel: 10,
   baseMoveSpeed: 390,
   upgradeCosts: { base: 100, growth: 1.6 },

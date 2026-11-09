@@ -119,7 +119,7 @@ function spawnAsteroid({ helper = false, isPrimary = true, entryDelay, x, y, siz
 function spawnNormalBatch(requestedCount) {
   const cfg = state.levelConfig;
   const plan = state.spawnPlan;
-  if (!cfg.isLevelBoss || !plan) return 0;
+  if (cfg.isLevelBoss) return 0;
 
   const activeThreats = asteroids.filter((a) => !a.dead).length;
   const freeSlots = Math.max(0, plan.activeCap - activeThreats);
@@ -157,7 +157,7 @@ function beginNormalEncounter() {
 function updateNormalSpawner(dt) {
   const cfg = state.levelConfig;
   const plan = state.spawnPlan;
-  if (!cfg.isLevelBoss || !plan || plan.remaining <= 0) return;
+  if (cfg.isLevelBoss || plan.spawned >= plan.total) return;
 
   plan.timer -= dt;
   if (plan.timer > 0) return;
@@ -212,10 +212,18 @@ function updateMenuUI() {
   damageLevel.textContent = SAVE.upgrades_level.damage;
   damageCost.textContent = getCostUpgrade("damage");
 
-  fireRateButton.disabled = SAVE.coins < getCostUpgrade("fireRate");
+  const fireRate = BALANCE.baseFireInterval - (SAVE.upgrades_level.fireRate * BALANCE.fireRatePerLevel);
+  if (fireRate <= BALANCE.minFireInterval) {
+    fireRateButton.disabled = true;
+    fireRateButton.classList.add("max");
+    fireRateLevel.textContent = "MAX";
+    fireRateCost.parentElement.remove();
+  } else {
+    fireRateButton.disabled = SAVE.coins < getCostUpgrade("fireRate");
+    fireRateLevel.textContent = SAVE.upgrades_level.fireRate;
+    fireRateCost.textContent = getCostUpgrade("fireRate");
+  }
   fireRateValue.textContent = (BALANCE.baseFireInterval - (SAVE.upgrades_level.fireRate * BALANCE.fireRatePerLevel)) + " ms";
-  fireRateLevel.textContent = SAVE.upgrades_level.fireRate;
-  fireRateCost.textContent = getCostUpgrade("fireRate");
 
   resistanceButton.disabled = SAVE.coins < getCostUpgrade("resistance");
   resistanceValue.textContent = BALANCE.resistancePerLevel * SAVE.upgrades_level.resistance;
@@ -263,7 +271,7 @@ function changeSelectorLevel(delta) {
 }
 
 // Slider de seleção de nave
-let currentShipIndex = 0;
+let currentShipIndex = SAVE.selectedShip;
 function sliderSelectorShip(index) {
   player.setShipSkin(index);
   SAVE.selectedShip = index;
@@ -272,13 +280,14 @@ function sliderSelectorShip(index) {
 
 playShipButton.addEventListener("click", (_) => {
   playTone(840, 0.13, 0.035, "triangle"); // CLICK
-  player.setLaunchParam(2);
+  player.setLaunchParam(2); // 2 segundos de mergulho
+  player.setShipSkin(SAVE.selectedShip);
   player.setShoots(SHIPS[SAVE.selectedShip].shoots);
   state.mode = "launching";
 
   showScreen("hud");
   setTimeout((_) => {
-    level.set(1);
+    level.set(SAVE.selectedLevel);
     state.mode = "playing";
     beginNormalEncounter();
   }, 2000);
@@ -298,11 +307,11 @@ nextShipButton.addEventListener("click", (_) => {
 buttonCloseModals.forEach((btn) => btn.addEventListener("click", _ => (btn.parentNode.parentNode)?.close()));
 rankingButton.addEventListener("click", (_) => showModal("ranking"));
 helpButton.addEventListener("click", (_) => showModal("help"));
-damageButton.addEventListener("click", _ => buyUpgrade("damage"));
-fireRateButton.addEventListener("click", _ => buyUpgrade("fireRate"));
-resistanceButton.addEventListener("click", _ => buyUpgrade("resistance"));
+damageButton.addEventListener("click", (_) => buyUpgrade("damage"));
+fireRateButton.addEventListener("click", (_) => buyUpgrade("fireRate"));
+resistanceButton.addEventListener("click", (_) => buyUpgrade("resistance"));
 pauseButton.addEventListener("click", (_) => pauseGame());
-
+resumeButton.addEventListener("click", (_) => resumeGame())
 // $("quitButton").addEventListener("click", quitRun);
 // $("retryButton").addEventListener("click", () =>
 //   startLevel(state.selectedLevel),

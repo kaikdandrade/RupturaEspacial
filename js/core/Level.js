@@ -23,7 +23,8 @@ class Level {
   }
 
   #defSpawnPlan() {
-    const total = Math.min(60, 10 + Math.floor((this.number - 1) * 1.35));
+    const max = 60 + (GROWTH_SPAWN * Math.floor((this.number - 1) / 100));
+    const total = Math.min(max, 10 + Math.floor((this.number - 1) * 1.35));
     const batchMin = total >= 18 ? 2 : 1;
     const batchMax = total >= 42 ? 5 : clamp(Math.ceil(Math.sqrt(total)), 4, 6);
     const activeCap = clamp(batchMax + Math.floor(this.number / 8), 6, 14);

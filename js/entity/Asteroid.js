@@ -282,10 +282,7 @@ class Asteroid extends AsteroidSignals {
         const bonus = this.type === "common" || this.type === "fractionalSlice" ? 0 : this.boss ? 22 : 4;
         state.playing.score += Math.max(1, Math.round(this.maxHp * (this.boss ? 1.2 : this.child ? 0.22 : 0.5) + bonus));
         state.score += Math.round(this.maxHp * (this.boss ? 34 : this.child ? 6 : 12) + bonus * 12);
-        // Usa o maior valor, NÃO soma os shakes de múltiplas destruições.
-        // Outros efeitos (por exemplo, dano no jogador) permanecem independentes.
-        const shake = this.boss ? Asteroid.DESTROY_SHAKE_BOSS : 0;
-        state.shake = Math.max(Number.isFinite(state.shake) ? state.shake : 0.5, shake);
+        state.shake = Math.min(12, state.shake + (this.boss ? 7 : 2));
       }
       if (this.boss && state.boss === this) state.boss = null;
     }
