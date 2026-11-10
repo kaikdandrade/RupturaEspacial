@@ -35,7 +35,7 @@
             <img src="assets/icons/ranking.png" alt="Icone da tabela de classificação" class="icon" />
           </button>
           <button id="help-button" class="hub-button" type="button" aria-label="Botão abrir ajuda">
-            <img src="assets/icons/help.png" alt="Icone de ajuda" class="icon" />
+            <img src="assets/icons/help2.png" alt="Icone de ajuda" class="icon" />
           </button>
         </div>
       </header>
@@ -195,7 +195,7 @@
     <dialog id="pause" class="modal" aria-label="Jogo pausado">
       <header class="modal-header">
         <h2 class="title">Jogo Pausada</h2>
-        <span class="eyebrown">Fase 1</span>
+        <span class="eyebrow">Fase 1</span>
       </header>
 
       <div class="modal-content">
@@ -269,57 +269,69 @@
     </dialog>
 
     <dialog id="levelCompleted" class="modal" aria-label="Nível concluído">
-      <span class="eyebrow success">SETOR LIMPO</span>
-      <h2>Nível <span id="completeLevel">1</span> concluído!</h2>
-      <div class="result-grid">
-        <div>Pontuação</div>
-        <div><span>Destruídos</span><strong id="completeDestroyed">0</strong></div>
-        <div><span>Centelhas</span><strong id="completeBonus">+0 ✦</strong></div>
+      <header class="modal-header">
+        <span class="eyebrow success">SETOR LIMPO</span>
+        <h2>Nível <span id="completeLevel">1</span> concluído!</h2>
+      </header>
+
+      <div class="modal-content">
+        <div class="result-grid">
+          <div>Pontuação</div>
+          <div><span>Destruídos</span><strong id="completeDestroyed">0</strong></div>
+          <div><span>Centelhas</span><strong id="completeBonus">+0 ✦</strong></div>
+        </div>
+        <button id="completeMenuButton" class="btn" type="button">
+          Voltar ao hangar
+        </button>
+        <button id="completeMenuButton" class="btn" type="button">
+          Jogar Novamente
+        </button>
+        <button id="nextLevelPlayButton" class="btn btn--primary" type="button">
+          Jogar próximo nível
+        </button>
       </div>
-      <button id="completeMenuButton" class="btn" type="button">
-        Voltar ao hangar
-      </button>
-      <button id="completeMenuButton" class="btn" type="button">
-        Jogar Novamente
-      </button>
-      <button id="nextLevelPlayButton" class="btn btn--primary" type="button">
-        Jogar próximo nível
-      </button>
+
     </dialog>
 
     <dialog id="gameover" class="modal">
-      <header>
+      <header class="modal-header">
+        <span class="eyebrow danger">AAA</span>
         <h2 class="title">Você perdeu! NAVE DESTRUÍDA</h2>
+        <h2>Fim da tentativa</h2>
       </header>
-      <span class="eyebrow danger">AAA</span>
-      <h2>Fim da tentativa</h2>
-      <div class="result-grid">
-        <div><span>Setor</span><strong id="resultLevel">1</strong></div>
-        <div><span>Progresso</span><strong id="resultProgress">0/12</strong></div>
-        <div><span>Créditos</span><strong id="resultCoins">+0 ✦</strong></div>
-        <div><span>Recorde</span><strong id="resultBest">0</strong></div>
+
+      <div class="modal-content">
+        <div class="result-grid">
+          <div><span>Setor</span><strong id="resultLevel">1</strong></div>
+          <div><span>Progresso</span><strong id="resultProgress">0/12</strong></div>
+          <div><span>Créditos</span><strong id="resultCoins">+0 ✦</strong></div>
+          <div><span>Recorde</span><strong id="resultBest">0</strong></div>
+        </div>
       </div>
-      <button id="retryButton" class="btn btn--primary" type="button">Tentar novamente</button>
-      <button id="menuButton" class="btn" type="button">Voltar ao hangar</button>
+
+      <footer class="modal-footer">
+        <button id="retryButton" class="btn btn--primary" type="button">Tentar novamente</button>
+        <button id="menuButton" class="btn" type="button">Voltar ao hangar</button>
+      </footer>
     </dialog>
 
     <!-- RANKING DE JOGADORES -->
     <dialog id="ranking" class="modal">
       <header class="modal-header">
         <h2 class="title">RANKING</h2>
-        <button aria-label="Fechar" class="close-modal" title="Fechar">&times;</button>
+        <button type="button" aria-label="Fechar" class="close-modal" title="Fechar">&times;</button>
       </header>
     </dialog>
 
     <!-- Ajuda / Enciclopédia -->
     <dialog id="help" class="modal">
-      <header class="panel-header">
+      <header class="modal-header">
         <div>
           <span class="eyebrow">ARQUIVO DE AMEAÇAS</span>
           <h2>Asteroides especiais e bosses</h2>
           <p>Consulte os efeitos das ameaças especiais e as mecânicas exclusivas dos bosses.</p>
         </div>
-        <button class="close-x" data-back type="button" aria-label="Fechar ajuda">×</button>
+        <button type="button" aria-label="Fechar" class="close-modal" title="Fechar">&times;</button>
       </header>
 
       <div class="asteroid-guide">
