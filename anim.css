@@ -1,0 +1,31 @@
+@keyframes shipFloat {
+
+    0%,
+    100% {
+        transform: translateY(-6px);
+    }
+
+    50% {
+        transform: translateY(8px);
+    }
+}
+
+@keyframes orbitPulse {
+
+    0%,
+    100% {
+        transform: scale(.95);
+        opacity: .45;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: .85;
+    }
+}
+
+@keyframes orbitSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
