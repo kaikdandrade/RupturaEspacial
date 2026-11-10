@@ -72,7 +72,7 @@ class Player {
     this.drag = 2.4;
     this.fireRate = BALANCE.baseFireInterval - (SAVE.upgrades_level.fireRate * BALANCE.fireRatePerLevel);
     this.invuln = 0;
-    this.hitbox = new Hitbox(this, (this.resistance) ? this.radius * 2 + 4 : this.radius);
+    this.hitbox = new Hitbox(this, (this.resistance) ? this.radius + 16 : this.radius);
 
     const onAsteroidContact = ({ other, group }) => {
       if (group !== "asteroids") return;
@@ -335,7 +335,7 @@ class Player {
       ? 0.3 + oscillation * 0.65
       : 0.8;
 
-    const radius = this.radius + 10;
+    const radius = this.radius + 8;
     ctx.save();
 
     // ========================================

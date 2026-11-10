@@ -180,36 +180,36 @@ function draw() {
     ctx.fillRect(0, 0, w, h);
   }
 
-  // function debugHitbox(hitbox, color = "#00ff00") {
-  //   ctx.save();
+  function debugHitbox(hitbox, color = "#00ff00") {
+    ctx.save();
 
-  //   ctx.strokeStyle = color;
-  //   ctx.lineWidth = 1.5;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
 
-  //   ctx.beginPath();
-  //   ctx.arc(
-  //     hitbox.x,
-  //     hitbox.y,
-  //     hitbox.radius,
-  //     0,
-  //     Math.PI * 2
-  //   );
-  //   ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(
+      hitbox.x,
+      hitbox.y,
+      hitbox.radius,
+      0,
+      Math.PI * 2
+    );
+    ctx.stroke();
 
-  //   ctx.restore();
-  // }
+    ctx.restore();
+  }
 
-  // if (state.mode === "playing") {
-  //   debugHitbox(player.hitbox, "#00ff00");
+  if (state.mode === "playing") {
+    debugHitbox(player.hitbox, "#00ff00");
 
-  //   asteroids.forEach(a => {
-  //     debugHitbox(a.hitbox, "#ff0000");
-  //   });
+    asteroids.forEach(a => {
+      debugHitbox(a.hitbox, "#ff0000");
+    });
 
-  //   player.bullets.forEach(b => {
-  //     if (!b.dead) debugHitbox(b.hitbox, "#00ffff");
-  //   });
-  // }
+    player.bullets.forEach(b => {
+      if (!b.dead) debugHitbox(b.hitbox, "#00ffff");
+    });
+  }
 }
 
 function loop(now) {
