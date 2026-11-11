@@ -192,7 +192,8 @@ function getCostUpgrade(type) {
 // Função chamada para carregar os dados salvos e espelha-los no DOM
 function updateMenuUI() {
   let level = SAVE.selectedLevel;
-  levelLabel.innerHTML = level + ((level < SAVE.highestLevel) ? ' "CONCLUÍDO"' : (level % 5 === 0) ? ' "BOSS"' : ' "Disponível"');
+  levelLabel.innerText= level;
+  levelLabelStatus.innerText = ((level < SAVE.highestLevel) ? ' "CONCLUÍDO"' : (level % 5 === 0) ? ' "BOSS"' : ' "Disponível"')
 
   shipPreview.src = SHIPS[SAVE.selectedShip].src;
   shipPreview.name = SHIPS[SAVE.selectedShip].name;
