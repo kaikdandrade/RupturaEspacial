@@ -24,20 +24,23 @@
           <h1 class="title">RUPTURA <span class="cyan">ESPACIAL</span></h1>
         </div>
 
-        <div class="hub">
+        <div class="stats">
           <div class="hub-progress">
             <span>RECORDE</span><strong id="best-score">0</strong>
           </div>
           <div class="hub-progress">
-            <span>NÍVEL MÁX.</span><strong id="highest-level">1</strong>
+            <span>NÍVEL MÁX</span><strong id="highest-level">1</strong>
           </div>
-          <button id="ranking-button" class="hub-button" type="button" aria-label="Botão abrir Tabela de classificação">
-            <img src="assets/icons/ranking.png" alt="Icone da tabela de classificação" class="icon" />
-          </button>
-          <button id="help-button" class="hub-button" type="button" aria-label="Botão abrir ajuda">
-            <img src="assets/icons/help2.png" alt="Icone de ajuda" class="icon" />
-          </button>
         </div>
+
+        <nav class="actions">
+          <button id="ranking-button" class="hub-button" type="button" aria-label="Abrir tabela de classificação">
+            <img src="assets/icons/ranking.png" alt="" />
+          </button>
+          <button id="help-button" class="hub-button" type="button" aria-label="Abrir ajuda">
+            <img src="assets/icons/help2.png" alt="" />
+          </button>
+        </nav>
       </header>
 
       <div class="play-container">
@@ -66,12 +69,12 @@
             <span class="ship-orbit" id="ship-orbit--two"></span>
             <span class="ship-glow"></span>
 
-            <div class="ship-preview-container">
+            <span class="ship-preview-container">
               <img id="ship-preview" class="ship-preview" src="assets/spaceship/spaceship_1.png" alt="Nave selecionada"
                 name="Nave Alpha" />
-            </div>
+            </span>
+            <span class="ship-button" id="ship-button">JOGAR</span>
           </button>
-          <button class="ship-button" id="ship-button">JOGAR</button>
 
           <button id="next-ship-button" class="arrow-button right" type="button" aria-label="Próxima nave">
             <img src="assets/icons/arrow_right.png" alt="Seta para esquerda" class="icon" />
@@ -185,7 +188,7 @@
         <span>PONTUAÇÃO</span><strong id="playScore">0</strong>
       </div>
       <button id="pauseButton" class="hub-button" type="button" aria-label="Pausar">
-        <img src="assets/icons/pause2.png" alt="Ícone de pause" />
+        <img src="assets/icons/pause.png" alt="Ícone de pause" />
       </button>
     </section>
   </main>
@@ -195,8 +198,7 @@
     <!-- PAUSE -->
     <dialog id="pause" class="modal" aria-label="Jogo pausado">
       <header class="modal-header">
-        <h2 class="title">Jogo Pausada</h2>
-        <span class="eyebrow">Fase 1</span>
+        <h2 class="title">Jogo Pausado</h2>
       </header>
 
       <div class="modal-content">
@@ -261,44 +263,40 @@
             </div>
           </div>
         </section>
+      </div>
 
-        <footer class="modal-footer">
-          <button id="resumeButton" class="btn" type="button">Continuar</button>
-          <button id="restartButton" class="btn" type="button">Reiniciar</button>
-          <button id="quitButton" class="btn" type="button">Menu Principal</button>
-        </footer>
+      <footer class="modal-footer">
+        <button id="resumeButton" class="btn btn--primary" type="button">Continuar</button>
+        <button id="restartButton" class="btn" type="button">Reiniciar</button>
+        <button id="quitButton" class="btn" type="button">Menu Principal</button>
+      </footer>
     </dialog>
 
     <dialog id="levelCompleted" class="modal" aria-label="Nível concluído">
       <header class="modal-header">
-        <span class="eyebrow success">SETOR LIMPO</span>
         <h2>Nível <span id="completeLevel">1</span> concluído!</h2>
       </header>
 
       <div class="modal-content">
         <div class="result-grid">
-          <div>Pontuação</div>
+          <div><span>Pontuação</span><strong id="completeScore">0</strong></div>
           <div><span>Destruídos</span><strong id="completeDestroyed">0</strong></div>
           <div><span>Centelhas</span><strong id="completeBonus">+0 ✦</strong></div>
         </div>
-        <button id="completeMenuButton" class="btn" type="button">
-          Voltar ao hangar
-        </button>
-        <button id="completeMenuButton" class="btn" type="button">
-          Jogar Novamente
-        </button>
-        <button id="nextLevelPlayButton" class="btn btn--primary" type="button">
-          Jogar próximo nível
-        </button>
       </div>
+
+      <footer class="modal-footer">
+        <button id="completeMenuButton" class="btn" type="button">Voltar ao hangar</button>
+        <button id="completeRetryButton" class="btn" type="button">Jogar novamente</button>
+        <button id="nextLevelPlayButton" class="btn btn--primary" type="button">Jogar próximo nível</button>
+      </footer>
 
     </dialog>
 
     <dialog id="gameover" class="modal">
       <header class="modal-header">
-        <span class="eyebrow danger">AAA</span>
-        <h2 class="title">Você perdeu! NAVE DESTRUÍDA</h2>
-        <h2>Fim da tentativa</h2>
+        <h2>Você perdeu!</h2>
+        <p>Fim da tentativa</p>
       </header>
 
       <div class="modal-content">
@@ -320,7 +318,9 @@
     <dialog id="ranking" class="modal">
       <header class="modal-header">
         <h2 class="title">RANKING</h2>
-        <button type="button" aria-label="Fechar" class="close-modal" title="Fechar">&times;</button>
+        <button type="button" aria-label="Fechar" class="close-modal" title="Fechar">
+          <img src="assets/icons/x.png" alt="" />
+        </button>
       </header>
     </dialog>
 
@@ -328,73 +328,89 @@
     <dialog id="help" class="modal">
       <header class="modal-header">
         <div>
-          <span class="eyebrow">ARQUIVO DE AMEAÇAS</span>
-          <h2>Asteroides especiais e bosses</h2>
-          <p>Consulte os efeitos das ameaças especiais e as mecânicas exclusivas dos bosses.</p>
+          <h2>Arquivo de ameaças</h2>
+          <p>Conheça os asteroides comuns, os especiais e as mecânicas exclusivas dos bosses.</p>
         </div>
-        <button type="button" aria-label="Fechar" class="close-modal" title="Fechar">&times;</button>
+        <button type="button" aria-label="Fechar" class="close-modal" title="Fechar">
+          <img src="assets/icons/x.png" alt="" />
+        </button>
       </header>
 
       <div class="asteroid-guide">
-        <article class="guide-card"><img src="assets/asteroid_special/asteroid_fractional.png"
-            alt="Asteroide Fracional">
+        <h3 class="guide-section">Comuns</h3>
+        <article class="guide-card">
+          <img src="assets/asteroid/asteroid_1.png" alt="Asteroide comum">
           <div>
-            <h3>Fracional</h3>
+            <h4>Comum</h4>
+            <p>A ameaça mais frequente. Atravessa o campo <strong>sem efeitos extras</strong>; cada um
+              destruído conta para o objetivo do setor.</p>
+          </div>
+        </article>
+
+        <h3 class="guide-section">Especiais</h3>
+        <article class="guide-card">
+          <img src="assets/asteroid_special/asteroid_fractional.png" alt="Asteroide Fracional">
+          <div>
+            <h4>Fracional</h4>
             <p>Ao ser destruído, se divide aleatoriamente em <strong>2 a 5 slices menores</strong>, que
               continuam atravessando o campo.</p>
           </div>
         </article>
-        <article class="guide-card"><img src="assets/asteroid_special/asteroid_frozen.png" alt="Asteroide Frozen">
+        <article class="guide-card">
+          <img src="assets/asteroid_special/asteroid_frozen.png" alt="Asteroide Frozen">
           <div>
-            <h3>Frozen</h3>
+            <h4>Frozen</h4>
             <p>Dropa um card desconhecido. Pode <strong>desacelerar os asteroides</strong> ou, como
               debuff, <strong>desacelerar sua nave</strong> por alguns segundos.</p>
           </div>
         </article>
-        <article class="guide-card boss-card"><img src="assets/asteroid_special/boss/asteroid_resistence.png"
-            alt="Boss Resistance">
+        <article class="guide-card">
+          <img src="assets/asteroid_special/asteroid_mystic.png" alt="Asteroide Mystic">
           <div>
-            <h3>Resistance <span class="boss-tag">BOSS</span></h3>
-            <p>Boss com <strong>armadura e vida muito maiores</strong>. É preciso destruir toda a
-              armadura antes de atingir a vida real, enquanto ele continua invocando reforços.</p>
-          </div>
-        </article>
-        <article class="guide-card"><img src="assets/asteroid_special/asteroid_mystic.png" alt="Asteroide Mystic">
-          <div>
-            <h3>Mystic</h3>
+            <h4>Mystic</h4>
             <p>Sempre deixa um <strong>buff positivo</strong>: dano maior, cadência, multishot ou
               velocidade temporária.</p>
           </div>
         </article>
-        <article class="guide-card boss-card"><img src="assets/asteroid_special/boss/asteroid_gravity.png"
-            alt="Boss Gravity">
+        <article class="guide-card">
+          <img src="assets/asteroid_special/asteroid_volcanic.png" alt="Asteroide Vulcânico">
           <div>
-            <h3>Gravity <span class="boss-tag">BOSS</span></h3>
+            <h4>Vulcânico</h4>
+            <p>Dropa um card desconhecido. O buff incendeia todos os asteroides da tela com <strong>dano
+                periódico</strong>; o debuff reduz seu dano em <strong>5</strong> temporariamente.</p>
+          </div>
+        </article>
+
+        <h3 class="guide-section">Bosses</h3>
+        <article class="guide-card boss-card">
+          <img src="assets/asteroid_special/boss/asteroid_resistence.png" alt="Boss Resistance">
+          <div>
+            <h4>Resistance</h4>
+            <p>Boss com <strong>armadura e vida muito maiores</strong>. É preciso destruir toda a
+              armadura antes de atingir a vida real, enquanto ele continua invocando reforços.</p>
+          </div>
+        </article>
+        <article class="guide-card boss-card">
+          <img src="assets/asteroid_special/boss/asteroid_gravity.png" alt="Boss Gravity">
+          <div>
+            <h4>Gravity</h4>
             <p>Começa com asteroides <strong>presos em órbita como escudos</strong>. Enquanto houver um
               satélite, o núcleo não recebe dano. Ele avança sobre a nave e repõe proteção com novos
               reforços.</p>
           </div>
         </article>
-        <article class="guide-card boss-card"><img src="assets/asteroid_special/boss/asteroid_thorny.png"
-            alt="Boss Thorn">
+        <article class="guide-card boss-card">
+          <img src="assets/asteroid_special/boss/asteroid_thorny.png" alt="Boss Thorn">
           <div>
-            <h3>Thorn <span class="boss-tag">BOSS</span></h3>
+            <h4>Thorn</h4>
             <p>Dispara <strong>Thorn Spikes continuamente</strong> e ainda invoca outros asteroides.
               Seus spikes são mais rápidos que na mecânica original.</p>
           </div>
         </article>
-        <article class="guide-card"><img src="assets/asteroid_special/asteroid_volcanic.png" alt="Asteroide Vulcânico">
+        <article class="guide-card boss-card">
+          <img src="assets/asteroid_special/boss/asteroid_ciber.png" alt="Boss Cyber">
           <div>
-            <h3>Vulcânico</h3>
-            <p>Dropa um card desconhecido. O buff incendeia todos os asteroides da tela com <strong>dano
-                periódico</strong>; o debuff reduz seu dano em <strong>5</strong> temporariamente.
-            </p>
-          </div>
-        </article>
-        <article class="guide-card boss-card"><img src="assets/asteroid_special/boss/asteroid_ciber.png"
-            alt="Boss Cyber">
-          <div>
-            <h3>Cyber <span class="boss-tag">BOSS</span></h3>
+            <h4>Cyber</h4>
             <p>Mantém o olho travado na nave e dispara <strong>esferas azuis teleguiadas com muito mais
                 frequência e velocidade</strong>, além de chamar reforços.</p>
           </div>

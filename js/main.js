@@ -305,7 +305,7 @@ nextShipButton.addEventListener("click", (_) => {
   sliderSelectorShip(currentShipIndex);
 });
 
-buttonCloseModals.forEach((btn) => btn.addEventListener("click", _ => (btn.parentNode.parentNode)?.close()));
+buttonCloseModals.forEach((btn) => btn.addEventListener("click", _ => btn.closest("dialog")?.close()));
 rankingButton.addEventListener("click", (_) => showModal("ranking"));
 helpButton.addEventListener("click", (_) => showModal("help"));
 damageButton.addEventListener("click", (_) => buyUpgrade("damage"));
