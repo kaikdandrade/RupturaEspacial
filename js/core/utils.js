@@ -20,6 +20,33 @@ function playTone(freq = 440, duration = 0.04, volume = 0.03, type = "sine") {
   }
 }
 
+// Segundos -> "mm:ss" (ou "h:mm:ss" a partir de 1 hora)
+function formatTime(seconds) {
+  const total = Math.floor(seconds);
+  const h = Math.floor(total / 3600);
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  const s = String(total % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
+}
+
+function money(value) {
+  const units = ["", "K", "M", "B", "T"];
+  const sign = value < 0 ? "-" : "";
+  let n = Math.abs(value);
+
+  if (n < 1000) return sign + Math.floor(n);
+
+  let i = 0;
+  while (n >= 1000 && i < units.length - 1) {
+    n /= 1000;
+    i++;
+  }
+
+  // Corta (não arredonda) pra 1 casa decimal: 1999 → "1.9k", nunca "2.0k" nem "1000k"
+  const truncated = Math.floor(n * 10) / 10;
+  return sign + truncated.toString().replace(/\.0$/, "") + units[i];
+}
+
 function viewport() {
   return { w: canvas.clientWidth, h: canvas.clientHeight };
 }
@@ -62,26 +89,27 @@ function circlesTouch(a, b, extra = 0) {
 const ASSETS = {
   common: Array.from(
     { length: 9 },
-    (_, i) => `assets/asteroid/asteroid_${i + 1}.png`,
+    (_, i) => `assets/asteroids/common/asteroid_${i + 1}.png`,
   ),
   special: {
-    fractional: "assets/asteroid_special/asteroid_fractional.png",
-    fractionalSlice: "assets/asteroid_special/asteroid_factional_slice.png",
-    frozen: "assets/asteroid_special/asteroid_frozen.png",
-    mystic: "assets/asteroid_special/asteroid_mystic.png",
-    volcanic: "assets/asteroid_special/asteroid_volcanic.png",
+    fractional: "assets/asteroids/special/fractional.png",
+    fractionalSlice: "assets/asteroids/special/fractional_slice.png",
+    frozen: "assets/asteroids/special/frozen.png",
+    mystic: "assets/asteroids/special/mystic.png",
+    volcanic: "assets/asteroids/special/volcanic.png",
+    golden: "assets/asteroids/special/golden.png", // novo tipo, ainda sem funcionalidade
   },
   bosses: {
-    cyber: "assets/asteroid_special/boss/asteroid_ciber.png",
-    gravity: "assets/asteroid_special/boss/asteroid_gravity.png",
-    gravityAura: "assets/asteroid_special/boss/asteroid_gravity_aurea.png",
-    resistance: "assets/asteroid_special/boss/asteroid_resistence.png",
-    thorny: "assets/asteroid_special/boss/asteroid_thorny.png",
-    thornySpike: "assets/asteroid_special/boss/asteroid_thorny_spikes.png",
+    cyber: "assets/asteroids/bosses/cyber.png",
+    gravity: "assets/asteroids/bosses/gravity.png",
+    gravityAura: "assets/asteroids/bosses/gravity_aura.png",
+    resistance: "assets/asteroids/bosses/resistance.png",
+    thorny: "assets/asteroids/bosses/thorny.png",
+    thornySpike: "assets/asteroids/bosses/thorny_spike.png",
   },
   ships: Array.from(
     { length: 4 },
-    (_, i) => `assets/spaceship/spaceship_${i + 1}.png`,
+    (_, i) => `assets/ships/ship_${i + 1}.png`,
   ),
 };
 const imageCache = new Map();

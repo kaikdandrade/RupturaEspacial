@@ -95,7 +95,7 @@ class PickupCard {
     drawSprite(this.image, -20, -27, 40, 40);
     ctx.fillStyle = "#f7f8ff";
     ctx.textAlign = "center";
-    ctx.font = "900 8px system-ui, sans-serif";
+    ctx.font = "700 9px 'Chakra Petch', system-ui, sans-serif";
     ctx.fillText(
       this.type === "frozen"
         ? "FROZEN"

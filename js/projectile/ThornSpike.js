@@ -10,7 +10,7 @@ class ThornSpikeProjectile {
     this.dead = false;
     this.life = 7;
     this.damage = 5;
-    this.image = loadImage(ASSETS.special.thornySpike);
+    this.image = loadImage(ASSETS.bosses.thornySpike);
     this.kind = "thorn";
   }
 

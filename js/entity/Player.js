@@ -248,8 +248,9 @@ class Player {
     if (t < split) {
       const p = t / split;
       const e = p * p * (3 - 2 * p);
-      this.#launch.scale = 1.1 + (minScale - 1.1) * e;
-      this.x = w / 2;
+      const startScale = this.#launch.startScale;
+      this.#launch.scale = startScale + (minScale - startScale) * e;
+      this.x = this.#launch.startX + (w / 2 - this.#launch.startX) * e;
       const exitY = -(this.height * minScale);
       this.y = this.#launch.startY + (exitY - this.#launch.startY) * e;
     } else {
@@ -257,6 +258,7 @@ class Player {
       const e = 1 - Math.pow(1 - p, 3);
       const scaledHeight = this.height * minScale;
       const entryY = h + scaledHeight;
+      this.x = w / 2;
       this.y = entryY + (this.#launch.endY - entryY) * e;
       this.#launch.scale = minScale + (1.25 - minScale) * e;
     }
@@ -269,10 +271,12 @@ class Player {
 
   draw() {
     this.#bullets.forEach((b) => b.draw());
-    const { width, height, image } = this;
+    const { image } = this;
+    const { width, height } = this.getSpriteSize();
+    const scale = this.#launch?.scale ?? 1;
     ctx.save();
     ctx.translate(this.x, this.y);
-    ctx.scale(this.#launch.scale, this.#launch.scale);
+    ctx.scale(scale, scale);
     ctx.globalAlpha = 1;
     drawSprite(image, -width / 2, -height / 2, width, height);
     if (state.mode != "launching") this.drawShield();
@@ -400,8 +404,19 @@ class Player {
     ctx.restore();
   }
 
+  /**
+   * Tamanho do sprite encaixado na caixa width x height, mantendo a proporção
+   * da imagem (os PNGs das naves não são quadrados).
+   */
+  getSpriteSize() {
+    const img = this.image;
+    if (!img?.naturalWidth || !img?.naturalHeight) return { width: this.width, height: this.height };
+    const fit = Math.min(this.width / img.naturalWidth, this.height / img.naturalHeight);
+    return { width: img.naturalWidth * fit, height: img.naturalHeight * fit };
+  }
+
   getMenuShipPose() {
-    const ship = $("shipPreview");
+    const ship = $("ship-preview");
     const shipRect = ship?.getBoundingClientRect();
     const canvasRect = canvas.getBoundingClientRect();
 
@@ -411,25 +426,32 @@ class Player {
       return {
         x: w / 2,
         y: h * 0.46,
-        size: 112,
+        width: 112,
       };
     }
 
     return {
       x: shipRect.left - canvasRect.left + shipRect.width / 2,
       y: shipRect.top - canvasRect.top + shipRect.height / 2,
-      size: Math.max(72, Math.min(shipRect.width, shipRect.height)),
+      width: shipRect.width,
     };
   }
 
   setLaunchParam(duration = 2) {
+    // Lê a pose ANTES de trocar de tela, enquanto a nave do menu ainda está visível.
     const pose = this.getMenuShipPose();
     const { h } = viewport();
+    // Escala inicial para a nave no canvas ter exatamente a largura da nave do menu.
+    const startScale = pose.width / this.getSpriteSize().width;
+    this.x = pose.x;
+    this.y = pose.y;
     this.#launch = {
       elapsed: 0,
       duration: duration,
       startX: pose.x,
       startY: pose.y,
+      startScale,
+      scale: startScale,
       endY: h - 90,
     };
   }
@@ -439,8 +461,20 @@ class Player {
     this.image = loadImage(ASSETS.ships[this.#skinIndex]);
   }
 
+  // Qantidade de tiros por nave
   setShoots(n) {
     this.#shoots = n;
+  }
+
+  // Reseta o estado da nave para uma nova partida
+  retryLevel() {
+    this.vx = 0;
+    this.vy = 0;
+    this.invuln = 0;
+    this.#isShooting = false;
+    this.resistance = this.maxResistance;
+    this.shieldProgress = 0;
+    this.#bullets = [];
   }
 
   shoot() {

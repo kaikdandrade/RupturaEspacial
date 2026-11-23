@@ -37,4 +37,3 @@ class Data {
 
 const DATA = new Data();
 const SAVE = DATA.loadSave();
-console.log("SAVE:", SAVE);

@@ -328,7 +328,7 @@ class Asteroid extends AsteroidSignals {
       ctx.stroke();
       ctx.restore();
     }
-    ctx.font = "bold 14px sans-serif";
+    ctx.font = "700 14px Orbitron, sans-serif";
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     ctx.fillText(this.hp, 0, 5);

@@ -18,4 +18,4 @@ class Effect {
     }
 }
 
-const effects = new Effect();
+const effect = new Effect();

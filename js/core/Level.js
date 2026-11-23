@@ -50,7 +50,7 @@ class Level {
       playing: {
         time: 0,
         score: 0,
-        effects: effects.reset(),
+        effects: effect.reset(),
         kills: {
           total: 0,
           common: 0,

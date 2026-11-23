@@ -45,9 +45,14 @@ function update(dt) {
     case "menu":
       updateMenuUI();
       break;
+    // Menu de derrota do jogador
     case "gameover":
+      updateGameOverUI();
       break;
-    // Jogo funcionando
+    // Menu de vitório do setor
+    case "completed":
+      break;
+    // Jogo em andamento
     case "playing":
       const lConfig = state.levelConfig;
       scoreTime(dt);
@@ -75,8 +80,6 @@ function update(dt) {
       const todosSpawnados = plan && plan.spawned >= plan.total;
       const todosDestruidos = plan && state.playing.kills.total >= plan.total;
       const arenaLimpa = asteroids.length === 0;
-      console.log(todosSpawnados, todosDestruidos, arenaLimpa)
-
       if (todosSpawnados && todosDestruidos && arenaLimpa) {
         state.mode = "complete";
         showModal("levelCompleted");
@@ -199,7 +202,7 @@ function draw() {
     ctx.restore();
   }
 
-  if (state.mode === "playing") {
+  if (state.mode === "playing" && VIEW_HITBOX) {
     debugHitbox(player.hitbox, "#00ff00");
 
     asteroids.forEach(a => {

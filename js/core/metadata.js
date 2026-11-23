@@ -6,10 +6,14 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d", { alpha: true });
 const $ = (id) => document.getElementById(id);
+const $$ = (id) => [...document.querySelectorAll(id)];
 
+const DEBUGGER = true;
+const VIEW_HITBOX = true;
 const GROWTH_SPAWN = 5;
 const SCORE_TIME_LIMIT = 40;
 const LEVEL_UNLOCK_SPECIALS = 5;
+const LAUNCH_TIME = 2; // segundos
 const SPECIALS_ASTEROIDS = ["volcanic", "frozen", "mystic"]; //, "fractional"];
 const BOSSES_ASTEROIDS = ["resistance", "gravity", "thorny", "cyber"];
 
@@ -28,12 +32,12 @@ const prevLevelButton = $("prev-level-button");
 const nextLevelButton = $("next-level-button");
 const levelLabel = $("level-value");
 const levelLabelStatus = $("level-status");
-const rankingButton = $("ranking-button");
 const helpButton = $("help-button");
 const hubKills = $("hubKills");
 const hubTarget = $("hubTarget");
 const hubLevel = $("selectedLevel");
 const hubScore = $("playScore");
+const hubTime = $("playTime");
 const levelProgressBar = $("levelProgressBar");
 const damageButton = $("damage-button");
 const damageValue = $("damage-value");
@@ -49,12 +53,25 @@ const resistanceLevel = $("resistance-level");
 const resistanceCost = $("resistance-cost");
 const pauseButton = $("pauseButton");
 const resumeButton = $("resumeButton");
+const retryButton = $("retryButton");
+const resultLevel = $("resultLevel");
+const resultKills = $("resultKills");
+const resultTotal = $("resultTotal");
+const resultBest = $("resultBest");
+const resultCoins = $("resultCoins");
+const resultProgressBar = $("resultProgressBar");
+const hangarButtons = $$(".btn-hangar");
+const restartButton = $("restartButton");
+const pauseScore = $("pauseScore");
+const pauseKills = $("pauseKills");
+const pauseTime = $("pauseTime");
+const pauseResistance = $("pauseResistance");
 
 const SHIPS = [
-  { id: 1, src: "assets/spaceship/spaceship_1.png", name: "Nave Alpha", value: 0, shoots: 1 },
-  { id: 2, src: "assets/spaceship/spaceship_2.png", name: "Nave Beta", value: 1800, shoots: 2 },
-  { id: 3, src: "assets/spaceship/spaceship_3.png", name: "Nave Gamma", value: 3200, shoots: 3 },
-  { id: 4, src: "assets/spaceship/spaceship_4.png", name: "Nave Suam", value: 10000, shoots: 4 }
+  { id: 1, src: "assets/ships/ship_1.png", name: "Nave Alpha", value: 0, shoots: 1 },
+  { id: 2, src: "assets/ships/ship_2.png", name: "Nave Beta", value: 1800, shoots: 2 },
+  { id: 3, src: "assets/ships/ship_3.png", name: "Nave Gamma", value: 3200, shoots: 3 },
+  { id: 4, src: "assets/ships/ship_4.png", name: "Nave Suam", value: 10000, shoots: 4 }
 ];
 
 const BALANCE = {
@@ -73,7 +90,7 @@ const state = {
   playing: {
     time: 0,
     score: 0,
-    effects: effects.reset(),
+    effects: effect.reset(),
     kills: {
       total: 0,
       common: 0,
@@ -113,3 +130,7 @@ const collisions = new Collisions()
 
   .connect("bullets", "asteroids")
   .connect("player", "asteroids");
+
+// DEBUG
+if (DEBUGGER)
+  console.log("SAVE:", SAVE);

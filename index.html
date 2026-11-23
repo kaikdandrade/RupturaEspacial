@@ -34,11 +34,8 @@
         </div>
 
         <nav class="actions">
-          <button id="ranking-button" class="hub-button" type="button" aria-label="Abrir tabela de classificação">
-            <img src="assets/icons/ranking.png" alt="" />
-          </button>
           <button id="help-button" class="hub-button" type="button" aria-label="Abrir ajuda">
-            <img src="assets/icons/help2.png" alt="" />
+            <img src="assets/icons/help.png" alt="" />
           </button>
         </nav>
       </header>
@@ -70,7 +67,7 @@
             <span class="ship-glow"></span>
 
             <span class="ship-preview-container">
-              <img id="ship-preview" class="ship-preview" src="assets/spaceship/spaceship_1.png" alt="Nave selecionada"
+              <img id="ship-preview" class="ship-preview" src="assets/ships/ship_1.png" alt="Nave selecionada"
                 name="Nave Alpha" />
             </span>
             <span class="ship-button" id="ship-button">JOGAR</span>
@@ -187,6 +184,9 @@
       <div class="hub-progress">
         <span>PONTUAÇÃO</span><strong id="playScore">0</strong>
       </div>
+      <div class="hub-progress">
+        <span>TEMPO</span><strong id="playTime">00:00</strong>
+      </div>
       <button id="pauseButton" class="hub-button" type="button" aria-label="Pausar">
         <img src="assets/icons/pause.png" alt="Ícone de pause" />
       </button>
@@ -268,10 +268,11 @@
       <footer class="modal-footer">
         <button id="resumeButton" class="btn btn--primary" type="button">Continuar</button>
         <button id="restartButton" class="btn" type="button">Reiniciar</button>
-        <button id="quitButton" class="btn" type="button">Menu Principal</button>
+        <button class="btn btn-hangar" type="button">Voltar ao hangar</button>
       </footer>
     </dialog>
 
+    <!-- Modal vitória do nível -->
     <dialog id="levelCompleted" class="modal" aria-label="Nível concluído">
       <header class="modal-header">
         <h2>Nível <span id="completeLevel">1</span> concluído!</h2>
@@ -281,47 +282,53 @@
         <div class="result-grid">
           <div><span>Pontuação</span><strong id="completeScore">0</strong></div>
           <div><span>Destruídos</span><strong id="completeDestroyed">0</strong></div>
-          <div><span>Centelhas</span><strong id="completeBonus">+0 ✦</strong></div>
+          <div><span>Centelhas</span><strong class="currency"><span id="completeBonus">+0</span><img src="assets/icons/sparks.png" alt="centelhas" /></strong></div>
         </div>
       </div>
 
       <footer class="modal-footer">
-        <button id="completeMenuButton" class="btn" type="button">Voltar ao hangar</button>
+        <button class="btn btn-hangar" type="button">Voltar ao hangar</button>
         <button id="completeRetryButton" class="btn" type="button">Jogar novamente</button>
         <button id="nextLevelPlayButton" class="btn btn--primary" type="button">Jogar próximo nível</button>
       </footer>
-
     </dialog>
 
+    <!-- Modal de derrota do jogador -->
     <dialog id="gameover" class="modal">
       <header class="modal-header">
+        <img class="result-hero" src="assets/icons/skull.png" alt="" />
         <h2>Você perdeu!</h2>
-        <p>Fim da tentativa</p>
       </header>
 
       <div class="modal-content">
-        <div class="result-grid">
-          <div><span>Setor</span><strong id="resultLevel">1</strong></div>
-          <div><span>Progresso</span><strong id="resultProgress">0/12</strong></div>
-          <div><span>Créditos</span><strong id="resultCoins">+0 ✦</strong></div>
-          <div><span>Recorde</span><strong id="resultBest">0</strong></div>
+        <!-- Setor + progresso -->
+        <div class="go-sector">
+          <div class="go-sector-num"><small>Setor</small><strong id="resultLevel">01</strong></div>
+          <div class="go-progress">
+            <div class="go-progress-head">
+              <span>Asteroides destruídos</span>
+              <strong><span id="resultKills">0</span><small> / <span id="resultTotal">0</span></small></strong>
+            </div>
+            <div class="go-track"><span id="resultProgressBar"></span></div>
+          </div>
+        </div>
+
+        <div class="go-cards">
+          <div class="go-card go-card--score">
+            <img src="assets/icons/trophy.png" alt="" />
+            <div><span>Pontuação</span><strong id="resultBest">0</strong></div>
+          </div>
+          <div class="go-card go-card--coins">
+            <img src="assets/icons/sparks.png" alt="" />
+            <div><span>Créditos</span><strong id="resultCoins">+0</strong></div>
+          </div>
         </div>
       </div>
 
       <footer class="modal-footer">
         <button id="retryButton" class="btn btn--primary" type="button">Tentar novamente</button>
-        <button id="menuButton" class="btn" type="button">Voltar ao hangar</button>
+        <button class="btn btn-hangar" type="button">Voltar ao hangar</button>
       </footer>
-    </dialog>
-
-    <!-- RANKING DE JOGADORES -->
-    <dialog id="ranking" class="modal">
-      <header class="modal-header">
-        <h2 class="title">RANKING</h2>
-        <button type="button" aria-label="Fechar" class="close-modal" title="Fechar">
-          <img src="assets/icons/x.png" alt="" />
-        </button>
-      </header>
     </dialog>
 
     <!-- Ajuda / Enciclopédia -->
@@ -339,7 +346,7 @@
       <div class="asteroid-guide">
         <h3 class="guide-section">Comuns</h3>
         <article class="guide-card">
-          <img src="assets/asteroid/asteroid_1.png" alt="Asteroide comum">
+          <img src="assets/asteroids/common/asteroid_1.png" alt="Asteroide comum">
           <div>
             <h4>Comum</h4>
             <p>A ameaça mais frequente. Atravessa o campo <strong>sem efeitos extras</strong>; cada um
@@ -349,7 +356,7 @@
 
         <h3 class="guide-section">Especiais</h3>
         <article class="guide-card">
-          <img src="assets/asteroid_special/asteroid_fractional.png" alt="Asteroide Fracional">
+          <img src="assets/asteroids/special/fractional.png" alt="Asteroide Fracional">
           <div>
             <h4>Fracional</h4>
             <p>Ao ser destruído, se divide aleatoriamente em <strong>2 a 5 slices menores</strong>, que
@@ -357,7 +364,7 @@
           </div>
         </article>
         <article class="guide-card">
-          <img src="assets/asteroid_special/asteroid_frozen.png" alt="Asteroide Frozen">
+          <img src="assets/asteroids/special/frozen.png" alt="Asteroide Frozen">
           <div>
             <h4>Frozen</h4>
             <p>Dropa um card desconhecido. Pode <strong>desacelerar os asteroides</strong> ou, como
@@ -365,7 +372,7 @@
           </div>
         </article>
         <article class="guide-card">
-          <img src="assets/asteroid_special/asteroid_mystic.png" alt="Asteroide Mystic">
+          <img src="assets/asteroids/special/mystic.png" alt="Asteroide Mystic">
           <div>
             <h4>Mystic</h4>
             <p>Sempre deixa um <strong>buff positivo</strong>: dano maior, cadência, multishot ou
@@ -373,7 +380,7 @@
           </div>
         </article>
         <article class="guide-card">
-          <img src="assets/asteroid_special/asteroid_volcanic.png" alt="Asteroide Vulcânico">
+          <img src="assets/asteroids/special/volcanic.png" alt="Asteroide Vulcânico">
           <div>
             <h4>Vulcânico</h4>
             <p>Dropa um card desconhecido. O buff incendeia todos os asteroides da tela com <strong>dano
@@ -383,7 +390,7 @@
 
         <h3 class="guide-section">Bosses</h3>
         <article class="guide-card boss-card">
-          <img src="assets/asteroid_special/boss/asteroid_resistence.png" alt="Boss Resistance">
+          <img src="assets/asteroids/bosses/resistance.png" alt="Boss Resistance">
           <div>
             <h4>Resistance</h4>
             <p>Boss com <strong>armadura e vida muito maiores</strong>. É preciso destruir toda a
@@ -391,7 +398,7 @@
           </div>
         </article>
         <article class="guide-card boss-card">
-          <img src="assets/asteroid_special/boss/asteroid_gravity.png" alt="Boss Gravity">
+          <img src="assets/asteroids/bosses/gravity.png" alt="Boss Gravity">
           <div>
             <h4>Gravity</h4>
             <p>Começa com asteroides <strong>presos em órbita como escudos</strong>. Enquanto houver um
@@ -400,7 +407,7 @@
           </div>
         </article>
         <article class="guide-card boss-card">
-          <img src="assets/asteroid_special/boss/asteroid_thorny.png" alt="Boss Thorn">
+          <img src="assets/asteroids/bosses/thorny.png" alt="Boss Thorn">
           <div>
             <h4>Thorn</h4>
             <p>Dispara <strong>Thorn Spikes continuamente</strong> e ainda invoca outros asteroides.
@@ -408,7 +415,7 @@
           </div>
         </article>
         <article class="guide-card boss-card">
-          <img src="assets/asteroid_special/boss/asteroid_ciber.png" alt="Boss Cyber">
+          <img src="assets/asteroids/bosses/cyber.png" alt="Boss Cyber">
           <div>
             <h4>Cyber</h4>
             <p>Mantém o olho travado na nave e dispara <strong>esferas azuis teleguiadas com muito mais
@@ -420,11 +427,11 @@
     </dialog>
   </aside>
 
+  <script src="js/core/Data.js"></script>
   <script src="js/core/Collisions.js"></script>
   <script src="js/entity/Effects.js"></script>
   <script src="js/core/metadata.js"></script>
   <script src="js/core/utils.js"></script>
-  <script src="js/core/Data.js"></script>
   <script src="js/core/Level.js"></script>
   <script src="js/entity/Player.js"></script>
   <script src="js/entity/Asteroid.js"></script>

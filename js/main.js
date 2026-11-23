@@ -14,6 +14,7 @@ function closeModals() {
 
 function pauseGame() {
   if (state.mode === "playing") {
+    updatePauseUI();
     showModal("pause");
     state.mode = "paused";
   }
@@ -175,43 +176,75 @@ function updateNormalSpawner(dt) {
   plan.timer = entered ? random(plan.intervalMin, plan.intervalMax) : 0.35;
 }
 
+// Desconta o valor dos créditos. Retorna false (e toca um som de erro) se não houver saldo.
+function buy(costValue) {
+  if (!Number.isFinite(costValue) || SAVE.coins < costValue) {
+    playTone(180, 0.18, 0.04, "square"); // ERRO
+    return false;
+  }
+  playTone(760, 0.09, 0.03, "triangle"); // CLICK
+  SAVE.coins -= costValue;
+  DATA.storeSave(SAVE);
+  return true;
+}
+
 function buyUpgrade(type) {
-  const cost = getCostUpgrade(type);
-  console.log(type, cost);
-  if (!cost || SAVE.coins < cost) return;
-  SAVE.coins -= cost;
+  if (!buy(getCostUpgrade(type))) return;
   SAVE.upgrades_level[type]++;
   DATA.storeSave(SAVE);
-  playTone(760, 0.09, 0.03, "triangle"); // CLICK (upgrades)
+}
+
+function buyShip(index) {
+  if (SAVE.ownedShips[index]) return;
+  if (!buy(SHIPS[index].value)) {
+    // Feedback visual de saldo insuficiente
+    shipButton.classList.remove("denied");
+    void shipButton.offsetWidth; // reinicia a animação se clicar de novo
+    shipButton.classList.add("denied");
+    return;
+  }
+  SAVE.ownedShips[index] = true;
+  DATA.storeSave(SAVE);
 }
 
 function getCostUpgrade(type) {
   return Math.round(BALANCE.upgradeCosts.base * Math.pow(BALANCE.upgradeCosts.growth, SAVE.upgrades_level[type]));
 }
 
-// Função chamada para carregar os dados salvos e espelha-los no DOM
 function updateMenuUI() {
-  let level = SAVE.selectedLevel;
-  levelLabel.innerText= level;
-  levelLabelStatus.innerText = ((level < SAVE.highestLevel) ? ' "CONCLUÍDO"' : (level % 5 === 0) ? ' "BOSS"' : ' "Disponível"')
+  // HUD
+  bestScore.textContent = SAVE.bestScore;
+  highestLevel.textContent = SAVE.highestLevel;
+  moneyLabel.textContent = money(SAVE.coins);
 
+  // Level...
+  let level = SAVE.selectedLevel;
+  levelLabel.innerText = level;
+  const levelStatus = (level < SAVE.highestLevel) ? "completed" : (level % 5 === 0) ? "boss" : "available";
+  levelLabelStatus.dataset.status = levelStatus; // cor definida no CSS (.level [data-status])
+  levelLabelStatus.innerText = { completed: ' "CONCLUÍDO"', boss: ' "BOSS"', available: ' "Disponível"' }[levelStatus];
+  prevLevelButton.disabled = SAVE.selectedLevel <= 1;
+  nextLevelButton.disabled = SAVE.selectedLevel >= SAVE.highestLevel;
+
+  // Ship
   shipPreview.src = SHIPS[SAVE.selectedShip].src;
   shipPreview.name = SHIPS[SAVE.selectedShip].name;
   shipButton.classList.toggle("ship-lock", !SAVE.ownedShips[currentShipIndex]);
-  shipButton.innerHTML = (SAVE.ownedShips[currentShipIndex]) ? "Jogar" : "<img src='assets/icons/sparks.png' /> " + SHIPS[currentShipIndex].value;
+  const shipButtonHTML = (SAVE.ownedShips[currentShipIndex])
+    ? "Jogar"
+    : "<img src='assets/icons/sparks.png' alt='' /> " + money(SHIPS[currentShipIndex].value);
+  if (shipButton.dataset.html !== shipButtonHTML) {
+    shipButton.innerHTML = shipButtonHTML;
+    shipButton.dataset.html = shipButtonHTML;
+  }
   prevShipButton.disabled = SAVE.selectedShip <= 0;
   nextShipButton.disabled = SAVE.selectedShip >= SHIPS.length - 1;
-  bestScore.textContent = SAVE.bestScore;
-  highestLevel.textContent = SAVE.highestLevel;
-  moneyLabel.textContent = SAVE.coins;
-  prevLevelButton.disabled = SAVE.selectedLevel <= 1;
-  nextLevelButton.disabled = SAVE.selectedLevel >= SAVE.highestLevel;
 
   // Upgrades...
   damageButton.disabled = SAVE.coins < getCostUpgrade("damage");
   damageValue.textContent = SAVE.upgrades_level.damage * BALANCE.damagePerLevel + 1;
   damageLevel.textContent = SAVE.upgrades_level.damage;
-  damageCost.textContent = getCostUpgrade("damage");
+  damageCost.textContent = money(getCostUpgrade("damage"));
 
   const fireRate = BALANCE.baseFireInterval - (SAVE.upgrades_level.fireRate * BALANCE.fireRatePerLevel);
   if (fireRate <= BALANCE.minFireInterval) {
@@ -222,14 +255,14 @@ function updateMenuUI() {
   } else {
     fireRateButton.disabled = SAVE.coins < getCostUpgrade("fireRate");
     fireRateLevel.textContent = SAVE.upgrades_level.fireRate;
-    fireRateCost.textContent = getCostUpgrade("fireRate");
+    fireRateCost.textContent = money(getCostUpgrade("fireRate"));
   }
   fireRateValue.textContent = (BALANCE.baseFireInterval - (SAVE.upgrades_level.fireRate * BALANCE.fireRatePerLevel)) + " ms";
 
   resistanceButton.disabled = SAVE.coins < getCostUpgrade("resistance");
   resistanceValue.textContent = BALANCE.resistancePerLevel * SAVE.upgrades_level.resistance;
   resistanceLevel.textContent = SAVE.upgrades_level.resistance;
-  resistanceCost.textContent = getCostUpgrade("resistance");
+  resistanceCost.textContent = money(getCostUpgrade("resistance"));
 }
 
 function updateHud() {
@@ -240,12 +273,55 @@ function updateHud() {
   hubTarget.textContent = total;
   hubLevel.textContent = SAVE.selectedLevel;
   hubScore.textContent = Math.floor(state.playing.score);
+  hubTime.textContent = formatTime(state.playing.time);
 
   const progress = total > 0
     ? Math.min(100, (kills / total) * 100)
     : 0;
 
   levelProgressBar.style.width = `${progress}%`;
+}
+
+function updateGameOverUI() {
+  const kills = state.playing.kills.total;
+  const total = state.spawnPlan?.total ?? 0;
+  const percent = total > 0 ? Math.min(100, (kills / total) * 100) : 0;
+
+  resultLevel.textContent = String(level.number).padStart(2, "0");
+  resultKills.textContent = kills;
+  resultTotal.textContent = total;
+  resultBest.textContent = money(Math.floor(state.playing.score));
+  resultCoins.textContent = `+${money(state.playing.coins ?? 0)}`;
+  resultProgressBar.style.width = `${percent}%`;
+}
+
+function updatePauseUI() {
+  const kills = state.playing.kills.total;
+  const total = state.spawnPlan?.total ?? 0;
+
+  pauseScore.textContent = money(Math.floor(state.playing.score));
+  pauseKills.textContent = `${kills} / ${total}`;
+  pauseTime.textContent = formatTime(state.playing.time);
+  pauseResistance.textContent = `${Math.ceil(player.resistance)} / ${player.maxResistance}`;
+}
+
+function playGame() {
+  playTone(840, 0.13, 0.035, "triangle"); // CLICK
+  resultProgressBar.style.width = "0";
+  asteroids = [];
+  player.retryLevel();
+  level.set(SAVE.selectedLevel);
+  showScreen("hud");
+  updateHud();
+  player.setShipSkin(SAVE.selectedShip);
+  player.setLaunchParam(LAUNCH_TIME);
+  player.setShoots(SHIPS[SAVE.selectedShip].shoots);
+  state.mode = "launching";
+
+  setTimeout((_) => {
+    state.mode = "playing";
+    beginNormalEncounter();
+  }, LAUNCH_TIME * 1000);
 }
 
 // -------------------------- Eventos --------------------------
@@ -279,19 +355,14 @@ function sliderSelectorShip(index) {
   DATA.storeSave(SAVE);
 }
 
+// O #ship-button fica dentro do #play-ship-button, então um único listener cuida dos dois:
+// nave bloqueada -> compra; nave liberada -> joga.
 playShipButton.addEventListener("click", (_) => {
-  playTone(840, 0.13, 0.035, "triangle"); // CLICK
-  player.setLaunchParam(2); // 2 segundos de mergulho
-  player.setShipSkin(SAVE.selectedShip);
-  player.setShoots(SHIPS[SAVE.selectedShip].shoots);
-  state.mode = "launching";
-
-  showScreen("hud");
-  setTimeout((_) => {
-    level.set(SAVE.selectedLevel);
-    state.mode = "playing";
-    beginNormalEncounter();
-  }, 2000);
+  if (SAVE.ownedShips[currentShipIndex]) playGame();
+  else buyShip(currentShipIndex);
+});
+shipButton.addEventListener("animationend", (e) => {
+  if (e.animationName === "denied") shipButton.classList.remove("denied");
 });
 
 prevLevelButton.addEventListener("click", (_) => changeSelectorLevel(-1));
@@ -306,19 +377,27 @@ nextShipButton.addEventListener("click", (_) => {
 });
 
 buttonCloseModals.forEach((btn) => btn.addEventListener("click", _ => btn.closest("dialog")?.close()));
-rankingButton.addEventListener("click", (_) => showModal("ranking"));
 helpButton.addEventListener("click", (_) => showModal("help"));
 damageButton.addEventListener("click", (_) => buyUpgrade("damage"));
 fireRateButton.addEventListener("click", (_) => buyUpgrade("fireRate"));
 resistanceButton.addEventListener("click", (_) => buyUpgrade("resistance"));
 pauseButton.addEventListener("click", (_) => pauseGame());
 resumeButton.addEventListener("click", (_) => resumeGame())
-// $("quitButton").addEventListener("click", quitRun);
-// $("retryButton").addEventListener("click", () =>
-//   startLevel(state.selectedLevel),
-// );
-// $("menuButton").addEventListener("click", showMenu);
-// $("completeMenuButton").addEventListener("click", showMenu);
+hangarButtons.forEach(button => {
+  button.addEventListener("click", (_) => {
+    closeModals();
+    showScreen("mainMenu");
+    state.mode = "menu";
+  });
+});
+retryButton.addEventListener("click", () => {
+  closeModals();
+  playGame();
+});
+restartButton.addEventListener("click", (_) => {
+  closeModals();
+  playGame();
+});
 
 // Remover aquele efeito de arrastar imagens do navegador, que atrapalha a jogabilidade
 for (const img of document.getElementsByTagName("img"))
