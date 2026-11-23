@@ -1,5 +1,48 @@
 "use strict";
 
+// Sinais
+player.on("death", () => {
+  state.mode = "gameover";
+  updateGameOverUI();
+  showModal("gameover");
+});
+
+function showEffectToast(name, text) {
+  const toast = document.createElement("div");
+  toast.className = "effect-toast";
+  toast.dataset.effect = name;
+  toast.textContent = text;
+  toast.addEventListener("animationend", () => toast.remove());
+  $("hud").append(toast);
+}
+
+// Efeitos instantâneos (BLEVE e Incinerate)
+effects.on("activated", ({ name, duration }) => {
+  if (duration === 0) showEffectToast(name, `${Effect.CONFIG[name].label}!`);
+});
+
+// Evolução de gelo para gelo
+effects.on("evolved", ({ to }) => {
+  if (to === "freeze") showEffectToast("freeze", "Freeze!");
+});
+
+const aliveAsteroids = () => asteroids.filter((a) => !a.dead);
+const fireHit = ({ damage }) => aliveAsteroids().forEach((a) => {
+  const d = effects.fireDamage(damage, a);
+  if (d) a.hit(d, "burn");
+});
+const frostHit = ({ damage }) => aliveAsteroids()
+  .filter((a) => effects.frostAffects(a))
+  .forEach((a) => a.hit(damage, "burn"));
+
+effects.on("flameTick", fireHit);
+effects.on("incinerate", fireHit);
+effects.on("frostTick", frostHit);
+effects.on("freezeBurst", frostHit);
+effects.on("bleve", ({ damage }) => aliveAsteroids().forEach((a) => a.hit(damage, "burn")));
+
+
+
 function showScreen(id = null) {
   screens.forEach((screen) => screen.classList.toggle("active", !!id && screen.id === id));
 }
@@ -79,7 +122,6 @@ function spawnAsteroid({ helper = false, isPrimary = true, entryDelay, x, y, siz
     );
   const finalY = y ?? -finalSize - random(12, 100);
   const type = randomTypeAsteroids();
-  console.log("FINAL SPEED", finalSpeed);
 
   const options = {
     x: finalX,
@@ -92,29 +134,44 @@ function spawnAsteroid({ helper = false, isPrimary = true, entryDelay, x, y, siz
     isPrimary,
     entryDelay,
   };
+  var asteroid;
   switch (type) {
     case "resistance":
-      return new ResistanceAsteroid(options);
+      asteroid = new ResistanceAsteroid(options);
+      break;
     case "fractionalSlice":
-      return new FractionalSliceAsteroid(options);
+      asteroid = new FractionalSliceAsteroid(options);
+      break;
     case "fractional":
-      return new FractionalAsteroid(options);
+      asteroid = new FractionalAsteroid(options);
+      break;
     case "cyber":
-      return new CyberAsteroid(options);
+      asteroid = new CyberAsteroid(options);
+      break;
     case "gravity":
-      return new GravityAsteroid(options);
+      asteroid = new GravityAsteroid(options);
+      break;
     case "thorny":
-      return new ThornyAsteroid(options);
+      asteroid = new ThornyAsteroid(options);
+      break;
     case "frozen":
-      return new FrozenAsteroid(options);
+      asteroid = new FrozenAsteroid(options);
+      break;
     case "mystic":
-      return new MysticAsteroid(options);
+      asteroid = new MysticAsteroid(options);
+      break;
     case "volcanic":
-      return new VolcanicAsteroid(options);
+      asteroid = new VolcanicAsteroid(options);
+      break;
     case "common":
     default:
-      return new CommonAsteroid(options);
+      asteroid = new CommonAsteroid(options);
+      break;
   }
+  asteroid.on("drop", ({ x, y, type }) => {
+    pickups.push(new PickupCard(x, y, type));
+  });
+  return asteroid;
 }
 
 function spawnNormalBatch(requestedCount) {
@@ -265,23 +322,6 @@ function updateMenuUI() {
   resistanceCost.textContent = money(getCostUpgrade("resistance"));
 }
 
-function updateHud() {
-  const total = state.spawnPlan?.total ?? 0;
-  const kills = state.playing.kills.total;
-
-  hubKills.textContent = kills;
-  hubTarget.textContent = total;
-  hubLevel.textContent = SAVE.selectedLevel;
-  hubScore.textContent = Math.floor(state.playing.score);
-  hubTime.textContent = formatTime(state.playing.time);
-
-  const progress = total > 0
-    ? Math.min(100, (kills / total) * 100)
-    : 0;
-
-  levelProgressBar.style.width = `${progress}%`;
-}
-
 function updateGameOverUI() {
   const kills = state.playing.kills.total;
   const total = state.spawnPlan?.total ?? 0;
@@ -305,11 +345,70 @@ function updatePauseUI() {
   pauseResistance.textContent = `${Math.ceil(player.resistance)} / ${player.maxResistance}`;
 }
 
+function updateCompletedUI() {
+
+}
+
+const effectChips = new Map(); // nome do efeito -> elemento
+function updateEffectsHud() {
+  const active = effects.activeList();
+  const activeNames = new Set(active.map((e) => e.name));
+
+  // Remove os que acabaram
+  for (const [name, chip] of effectChips) {
+    if (!activeNames.has(name)) {
+      chip.remove();
+      effectChips.delete(name);
+    }
+  }
+
+  // Cria os novos e atualiza todos
+  for (const { name, label, remaining, progress } of active) {
+    let chip = effectChips.get(name);
+    if (!chip) {
+      chip = document.createElement("div");
+      chip.className = "effect-chip";
+      chip.dataset.effect = name;
+      chip.innerHTML = `
+        <span class="effect-chip__name">${label}</span>
+        <span class="effect-chip__time"></span>
+        <span class="effect-chip__bar"></span>`;
+      effectsBar.append(chip);
+      effectChips.set(name, chip);
+    }
+    chip.style.setProperty("--progress", progress);
+    chip.querySelector(".effect-chip__time").textContent = `${Math.ceil(remaining)}s`;
+    chip.classList.toggle("is-ending", remaining <= 2);
+  }
+}
+
+function updateHud() {
+  const total = state.spawnPlan?.total ?? 0;
+  const kills = state.playing.kills.total;
+
+  hubKills.textContent = kills;
+  hubTarget.textContent = total;
+  hubLevel.textContent = SAVE.selectedLevel;
+  hubScore.textContent = Math.floor(state.playing.score);
+  hubTime.textContent = formatTime(state.playing.time);
+
+  const progress = total > 0
+    ? Math.min(100, (kills / total) * 100)
+    : 0;
+
+  levelProgressBar.style.width = `${progress}%`;
+  updateEffectsHud();
+}
+
 function playGame() {
   playTone(840, 0.13, 0.035, "triangle"); // CLICK
   resultProgressBar.style.width = "0";
   asteroids = [];
+  pickups = [];
   player.retryLevel();
+  effectsBar.replaceChildren();
+  effectChips.clear();
+
   level.set(SAVE.selectedLevel);
   showScreen("hud");
   updateHud();

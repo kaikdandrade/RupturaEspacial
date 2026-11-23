@@ -66,12 +66,13 @@ const pauseScore = $("pauseScore");
 const pauseKills = $("pauseKills");
 const pauseTime = $("pauseTime");
 const pauseResistance = $("pauseResistance");
+const effectsBar = $("effectsBar");
 
 const SHIPS = [
   { id: 1, src: "assets/ships/ship_1.png", name: "Nave Alpha", value: 0, shoots: 1 },
-  { id: 2, src: "assets/ships/ship_2.png", name: "Nave Beta", value: 1800, shoots: 2 },
-  { id: 3, src: "assets/ships/ship_3.png", name: "Nave Gamma", value: 3200, shoots: 3 },
-  { id: 4, src: "assets/ships/ship_4.png", name: "Nave Suam", value: 10000, shoots: 4 }
+  { id: 2, src: "assets/ships/ship_2.png", name: "Nave Beta", value: 5000, shoots: 2 },
+  { id: 3, src: "assets/ships/ship_3.png", name: "Nave Gamma", value: 10000, shoots: 3 },
+  { id: 4, src: "assets/ships/ship_4.png", name: "Nave Suam", value: 20000, shoots: 4 }
 ];
 
 const BALANCE = {
@@ -90,7 +91,7 @@ const state = {
   playing: {
     time: 0,
     score: 0,
-    effects: effect.reset(),
+    effects: effects.reset(),
     kills: {
       total: 0,
       common: 0,
@@ -127,9 +128,11 @@ const collisions = new Collisions()
   .group("player", () => [player])
   .group("bullets", () => player.bullets)
   .group("asteroids", () => asteroids)
+  .group("pickups", () => pickups)
 
   .connect("bullets", "asteroids")
-  .connect("player", "asteroids");
+  .connect("player", "asteroids")
+  .connect("player", "pickups");
 
 // DEBUG
 if (DEBUGGER)

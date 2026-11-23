@@ -8,7 +8,10 @@ class Bullet {
     this.vy = -770;
     this.radius = 3.5;
     this.dead = false;
-    this.damage = SAVE.upgrades_level.damage * BALANCE.damagePerLevel + 1;
+    // Dano base do upgrade, ajustado pelo efeito damageBoost
+    this.damage = effects.damage(SAVE.upgrades_level.damage * BALANCE.damagePerLevel + 1);
+    // Quantos asteroides extras o tiro atravessa (piercingShot). Consumido no hitbox do Asteroid.
+    this.pierce = effects.pierceCount();
     this.hitbox = new Hitbox(this, this.radius);
   }
 
@@ -41,6 +44,7 @@ class Player {
   #lastShotTime = 0;
   #bullets = [];
   #shoots = 1;
+  #listeners = new Map();
   #ACTION_KEYS = [
     "arrowup",
     "arrowdown",
@@ -76,12 +80,11 @@ class Player {
 
     const onAsteroidContact = ({ other, group }) => {
       if (group !== "asteroids") return;
-      if (this.invuln > 0 || other.dead) return;
+      if (effects.isInvulnerable() || this.invuln > 0 || other.dead) return;
 
       // Próximo impacto após perder o escudo = Game Over
       if (this.resistance <= 0) {
-        state.mode = "gameover";
-        showModal(state.mode);
+        this.emit("death", { player: this, asteroid: other });
         return;
       }
 
@@ -151,7 +154,9 @@ class Player {
     // MOVIMENTAÇÃO
     // ============================
     const { w, h } = viewport();
-    const maxSpeed = BALANCE.baseMoveSpeed;
+    const speedMultiplier = effects.moveSpeedMultiplier(); // speedBoost
+    const maxSpeed = BALANCE.baseMoveSpeed * speedMultiplier;
+    const acceleration = this.acceleration * speedMultiplier;
 
     // Direção desejada pelo jogador
     let dx = 0;
@@ -170,8 +175,8 @@ class Player {
       dy /= length;
 
       // Aplica a aceleração
-      this.vx += dx * this.acceleration * dt;
-      this.vy += dy * this.acceleration * dt;
+      this.vx += dx * acceleration * dt;
+      this.vy += dy * acceleration * dt;
 
     } else {
       // Desaceleração gradual sem teclas pressionadas
@@ -479,7 +484,8 @@ class Player {
 
   shoot() {
     const now = performance.now();
-    if (now - this.#lastShotTime >= this.fireRate) {
+    const fireInterval = this.fireRate * effects.fireIntervalMultiplier(); // quickShot
+    if (now - this.#lastShotTime >= fireInterval) {
       this.#lastShotTime = now;
       playTone(560, 0.035, 0.018, "square"); // SOM do tiro
       switch (this.#shoots) {
@@ -508,6 +514,20 @@ class Player {
           break;
       }
     }
+  }
+
+  // ------------------------------------------------------------------
+  // Sinais: player.on("death", ({ player, asteroid }) => { ... })
+  // ------------------------------------------------------------------
+  on(signal, callback) {
+    if (typeof callback !== "function") throw new TypeError("O listener deve ser uma função");
+    if (!this.#listeners.has(signal)) this.#listeners.set(signal, new Set());
+    this.#listeners.get(signal).add(callback);
+    return () => this.#listeners.get(signal)?.delete(callback);
+  }
+
+  emit(signal, payload = {}) {
+    for (const callback of [...(this.#listeners.get(signal) ?? [])]) callback(payload);
   }
 
   get bullets() {

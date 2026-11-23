@@ -1010,6 +1010,146 @@
 }
 
 
+/* ========== Efeitos ativos (HUD) ========== */
+
+/*
+  Estrutura esperada (montada pelo JS dentro de #hud):
+
+  <div class="effects-bar">
+    <div class="effect-chip" data-effect="quickShot" style="--progress: 0.6">
+      <span class="effect-chip__name">Tiro rápido</span>
+      <span class="effect-chip__time">5s</span>
+      <span class="effect-chip__bar"></span>
+    </div>
+  </div>
+
+  Classes de estado: .is-ending (últimos segundos, pisca)
+  Aviso grande no centro: <div class="effect-toast" data-effect="bleve">BLEVE!</div>
+*/
+
+.effects-bar {
+  position: absolute;
+  top: calc(var(--arena-top, 78px) + 12px);
+  left: clamp(16px, 2.4vw, 28px);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.effect-chip {
+  /* Cor e ícone vêm do [data-effect] abaixo */
+  --effect-color: var(--cyan);
+  --effect-icon: none;
+  --progress: 1;
+
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+  min-width: 158px;
+  padding: 6px 10px 9px 7px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--effect-color) 45%, transparent);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--effect-color) 16%, rgb(8 15 48 / 0.88)), rgb(8 15 48 / 0.8));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--effect-color) 22%, transparent), var(--shadow-sm);
+  animation: effectIn 0.35s var(--ease-back) both;
+
+  /* Ícone */
+  &::before {
+    content: "";
+    width: 24px;
+    height: 24px;
+    background: var(--effect-icon) center / contain no-repeat;
+    rotate: var(--effect-icon-rotate, 0deg);
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--effect-color) 70%, transparent));
+  }
+
+  &.is-ending { animation: effectBlink 0.5s ease-in-out infinite alternate; }
+
+  @media (width <= 640px) {
+    min-width: 0;
+    grid-template-columns: 20px auto;
+    padding: 5px 8px 8px 6px;
+
+    &::before { width: 20px; height: 20px; }
+    .effect-chip__name { display: none; }
+  }
+}
+
+.effect-chip__name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.effect-chip__time {
+  color: var(--effect-color);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barra de tempo restante: preenchida por --progress (1 -> 0) */
+.effect-chip__bar {
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: rgb(255 255 255 / 0.08);
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    scale: var(--progress) 1;
+    transform-origin: left;
+    background: var(--effect-color);
+    box-shadow: 0 0 8px var(--effect-color);
+  }
+}
+
+/* Aviso grande no centro (efeitos instantâneos: BLEVE, Incinerate, Freeze...) */
+.effect-toast {
+  --effect-color: var(--yellow);
+
+  position: fixed; /* relativo à tela, não ao #hud (que só tem a altura da faixa superior) */
+  top: 32dvh;
+  left: 50%;
+  z-index: 4;
+  translate: -50% 0;
+  color: var(--effect-color);
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 5vw, 3rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 0 24px color-mix(in srgb, var(--effect-color) 70%, transparent), 0 4px 0 rgb(0 0 0 / 0.35);
+  pointer-events: none;
+  animation: effectToast 1.2s var(--ease-out) forwards;
+}
+
+/* Cor e ícone de cada efeito */
+[data-effect="frozen"] { --effect-color: #78e7ff; --effect-icon: url("assets/asteroids/special/frozen.png"); }
+[data-effect="freeze"] { --effect-color: #c4f6ff; --effect-icon: url("assets/asteroids/special/frozen.png"); }
+[data-effect="flame"] { --effect-color: #ff8c5c; --effect-icon: url("assets/asteroids/special/volcanic.png"); }
+[data-effect="incinerate"] { --effect-color: #ff6a3d; }
+[data-effect="bleve"] { --effect-color: #ffb347; }
+[data-effect="scoreBonus"] { --effect-color: var(--yellow); --effect-icon: url("assets/icons/trophy.png"); }
+[data-effect="quickShot"] { --effect-color: var(--cyan); --effect-icon: url("assets/icons/cadence.png"); }
+[data-effect="speedBoost"] { --effect-color: var(--success); --effect-icon: url("assets/ships/ship_1.png"); }
+[data-effect="damageBoost"] { --effect-color: var(--danger); --effect-icon: url("assets/icons/damage.png"); }
+[data-effect="piercingShot"] { --effect-color: #bd86ff; --effect-icon: url("assets/icons/arrow_right.png"); --effect-icon-rotate: -90deg; }
+[data-effect="invulnerability"] { --effect-color: var(--gold); --effect-icon: url("assets/icons/resistance.png"); }
+
 /* ========== Modais ========== */
 
 .modal {
@@ -1578,6 +1718,22 @@
 @keyframes orbitPulse {
   0%, 100% { scale: 0.95; opacity: 0.45; }
   50% { scale: 1.05; opacity: 0.85; }
+}
+
+@keyframes effectIn {
+  from { opacity: 0; translate: -16px 0; scale: 0.9; }
+}
+
+@keyframes effectBlink {
+  to { opacity: 0.45; }
+}
+
+@keyframes effectToast {
+  0% { opacity: 0; scale: 0.6; }
+  18% { opacity: 1; scale: 1.08; }
+  30% { scale: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0; translate: -50% -24px; }
 }
 
 @keyframes heroDrop {

@@ -51,8 +51,6 @@ class Asteroid extends AsteroidSignals {
     this.enteredArena = y >= 82 + this.radius;
     this.armor = 0;
     this.maxArmor = 0;
-    this.burnTicks = 0;
-    this.burnCountdown = 0;
 
     this.orbitHost = null;
     this.orbitAngle = 0;
@@ -68,7 +66,9 @@ class Asteroid extends AsteroidSignals {
     this.hitbox.on("enter", ({ other, group }) => {
       if (this.dead || this.entryDelay > 0 || !this.enteredArena) return;
       if (group === "bullets" && other && !other.dead) {
-        other.dead = true;
+        // piercingShot: o tiro atravessa enquanto tiver "pierce"
+        if (other.pierce > 0) other.pierce--;
+        else other.dead = true;
         this.hit(other.damage ?? 1, "shot");
       }
       if (group === "player" && other && !other.dead) {
@@ -104,27 +104,20 @@ class Asteroid extends AsteroidSignals {
     return this;
   }
 
-  applyBurn(ticks = 5) {
-    if (this.dead) return;
-    this.burnTicks = Math.max(this.burnTicks, ticks);
-    this.burnCountdown = Math.min(this.burnCountdown || 0.52, 0.52);
-  }
-
-  updateBurn(dt) {
-    if (!this.burnTicks) return;
-    this.burnCountdown -= dt;
-    if (this.burnCountdown > 0) return;
-    this.burnCountdown += 0.52;
-    this.burnTicks -= 1;
-    this.hit(1, "burn");
+  /**
+   * Solta o card de pickup do tipo deste asteroide (só em abates do jogador).
+   * Chance controlada por BALANCE.dropChance (0 a 1); sem a chave, sempre dropa.
+   */
+  tryDrop(reason) {
+    if (reason !== "shot" && reason !== "burn") return;
+    if (Math.random() >= (BALANCE.dropChance ?? 1)) return;
+    this.emit("drop", { asteroid: this, type: this.type, x: this.x, y: this.y });
   }
 
   update(dt) {
     if (this.dead) return;
     this.age += dt;
     this.rotation += this.rotationSpeed * dt;
-    this.updateBurn(dt);
-    if (this.dead) return;
     if (this.entryDelay > 0) {
       this.entryDelay = Math.max(0, this.entryDelay - dt);
       return;
@@ -141,8 +134,8 @@ class Asteroid extends AsteroidSignals {
       this.orbitHost = null;
     }
 
-    const slow = typeof state !== "undefined" && state.effects?.asteroidSlowUntil > state.time
-      ? 0.5 : 1;
+    // frozen / freeze (já considera gelo, fogo e bosses)
+    const slow = effects.asteroidSpeedMultiplier(this);
     this.updateMovement(dt * slow);
     if (this.enteredArena) this.updateBehavior(dt);
   }
@@ -280,7 +273,8 @@ class Asteroid extends AsteroidSignals {
       state.totalDestroyed += 1;
       if (playerKill) {
         const bonus = this.type === "common" || this.type === "fractionalSlice" ? 0 : this.boss ? 22 : 4;
-        state.playing.score += Math.max(1, Math.round(this.maxHp * (this.boss ? 1.2 : this.child ? 0.22 : 0.5) + bonus));
+        const points = Math.max(1, Math.round(this.maxHp * (this.boss ? 1.2 : this.child ? 0.22 : 0.5) + bonus));
+        state.playing.score += Math.round(points * effects.scoreMultiplier()); // scoreBonus
         state.score += Math.round(this.maxHp * (this.boss ? 34 : this.child ? 6 : 12) + bonus * 12);
         state.shake = Math.min(12, state.shake + (this.boss ? 7 : 2));
       }
@@ -291,21 +285,50 @@ class Asteroid extends AsteroidSignals {
     this.emit("destroyed", { asteroid: this, reason, playerKill });
   }
 
+  /** Indicador dos efeitos globais (fogo / frio) que estão afetando ESTE asteroide. */
+  drawActiveEffects() {
+    const r = this.radius * 1.12;
+
+    // Frio: anel gelado (mais forte no freeze). Só se este asteroide estiver de fato mais lento.
+    if (effects.asteroidSpeedMultiplier(this) < 1) {
+      const deep = effects.isActive("freeze");
+      ctx.save();
+      ctx.strokeStyle = deep ? "rgba(200, 246, 255, .9)" : "rgba(120, 231, 255, .65)";
+      ctx.shadowColor = "#78e7ff";
+      ctx.shadowBlur = deep ? 16 : 10;
+      ctx.lineWidth = deep ? 3.5 : 2.5;
+      if (!deep) ctx.setLineDash([6, 5]);
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.stroke();
+      if (deep) {
+        ctx.fillStyle = "rgba(170, 235, 255, .14)";
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // Fogo: anel laranja tremulante
+    if (effects.isActive("flame") && effects.burnAffects(this)) {
+      ctx.save();
+      ctx.strokeStyle = "#ff9159";
+      ctx.shadowColor = "#ff7544";
+      ctx.shadowBlur = 14;
+      ctx.globalAlpha = 0.55 + Math.sin(this.age * 18) * 0.2;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   draw() {
     if (this.dead) return;
     ctx.save();
     ctx.translate(this.x, this.y);
     this.drawSpecialEffects();
-    if (this.burnTicks > 0) {
-      ctx.save();
-      ctx.strokeStyle = "#ff9159";
-      ctx.globalAlpha = 0.6;
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(0, 0, this.radius * 1.12, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
+    this.drawActiveEffects();
     ctx.save();
     ctx.rotate(this.rotation);
     ctx.shadowColor = this.boss ? "rgba(255,213,118,.45)" : "rgba(0,0,0,.25)";
@@ -352,8 +375,7 @@ class FrozenAsteroid extends Asteroid {
   constructor(config) { super({ ...config, type: "frozen" }); }
   resolveSprite() { return ASSETS.special.frozen; }
   onDestroyed(reason) {
-    // Pickup de frozen: desativado temporariamente. Para reativar, descomente:
-    // if (reason === "shot" || reason === "burn") this.emit("drop", { asteroid: this, type: "frozen", x: this.x, y: this.y });
+    this.tryDrop(reason);
   }
 }
 
@@ -361,8 +383,7 @@ class MysticAsteroid extends Asteroid {
   constructor(config) { super({ ...config, type: "mystic" }); }
   resolveSprite() { return ASSETS.special.mystic; }
   onDestroyed(reason) {
-    // Pickup de mystic: desativado temporariamente. Para reativar, descomente:
-    // if (reason === "shot" || reason === "burn") this.emit("drop", { asteroid: this, type: "mystic", x: this.x, y: this.y });
+    this.tryDrop(reason);
   }
   drawSpecialEffects() {
     ctx.save();
@@ -379,8 +400,7 @@ class VolcanicAsteroid extends Asteroid {
   constructor(config) { super({ ...config, type: "volcanic" }); }
   resolveSprite() { return ASSETS.special.volcanic; }
   onDestroyed(reason) {
-    // Pickup de volcanic: desativado temporariamente. Para reativar, descomente:
-    // if (reason === "shot" || reason === "burn") this.emit("drop", { asteroid: this, type: "volcanic", x: this.x, y: this.y });
+    this.tryDrop(reason);
   }
   drawSpecialEffects() {
     ctx.save();

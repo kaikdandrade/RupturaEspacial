@@ -45,13 +45,6 @@ function update(dt) {
     case "menu":
       updateMenuUI();
       break;
-    // Menu de derrota do jogador
-    case "gameover":
-      updateGameOverUI();
-      break;
-    // Menu de vitório do setor
-    case "completed":
-      break;
     // Jogo em andamento
     case "playing":
       const lConfig = state.levelConfig;
@@ -61,27 +54,27 @@ function update(dt) {
       else updateNormalSpawner(dt);
 
       player.update(dt);
-      // applyGravityFields(dt);
       asteroids.forEach((a) => a.update(dt));
+      pickups.forEach((p) => p.update(dt));
+      // applyGravityFields(dt);
       // enemyProjectiles.forEach((p) => p.update(dt));
-      // pickups.forEach((p) => p.update(dt));
 
-      // Verifica as colisões após movimento
-      collisions.update();
+      collisions.update(); // Verifica as colisões após movimento
+      effects.update(dt);
 
       // Remove objetos destruídos
       asteroids = asteroids.filter(a => !a.dead);
+      pickups = pickups.filter((p) => !p.dead);
       // enemyProjectiles = enemyProjectiles.filter(p => !p.dead);
-      // pickups = pickups.filter((p) => !p.dead);
 
       // Verifica se todos os asteroides da fase foram destruídos
       const plan = state.spawnPlan;
-
       const todosSpawnados = plan && plan.spawned >= plan.total;
       const todosDestruidos = plan && state.playing.kills.total >= plan.total;
       const arenaLimpa = asteroids.length === 0;
       if (todosSpawnados && todosDestruidos && arenaLimpa) {
         state.mode = "complete";
+        updateCompletedUI();
         showModal("levelCompleted");
       }
 
