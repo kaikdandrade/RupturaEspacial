@@ -1,17 +1,30 @@
 "use strict";
 
+/**
+ * @file A nave do jogador (Player) e o tiro dela (Bullet).
+ * Controles: setas/WASD movem, botão do mouse, espaço ou Enter atiram.
+ */
+
+/** Tiro da nave. Sobe reto (com um desvio lateral vx para as naves com canos nas asas). */
 class Bullet {
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} vx desvio lateral em px/s na tela de referência
+   */
   constructor(x, y, vx = 0) {
     this.x = x;
     this.y = y;
-    this.vx = vx;
-    this.vy = -770;
-    this.radius = 3.5;
+    this.vx = px(vx);
+    this.vy = -px(770);
+    this.radius = Math.max(2, px(3.5));
     this.dead = false;
     // Dano base do upgrade, ajustado pelo efeito damageBoost
-    this.damage = effects.damage(SAVE.upgrades_level.damage * BALANCE.damagePerLevel + 1);
+    this.damage = effects.damage(playerBaseDamage());
     // Quantos asteroides extras o tiro atravessa (piercingShot). Consumido no hitbox do Asteroid.
     this.pierce = effects.pierceCount();
+    // Tiro elétrico: { jumps, range, falloff } enquanto o efeito estiver ativo (raio em cascata)
+    this.electric = effects.chainLightning();
     this.hitbox = new Hitbox(this, this.radius);
   }
 
@@ -22,65 +35,68 @@ class Bullet {
     if (this.y < -20 || this.x < -25 || this.x > w + 25) this.dead = true;
   }
 
+  /** Traço brilhante (2 passadas no lugar de shadowBlur, que era caro com muitos tiros). */
   draw() {
-    ctx.save();
-    ctx.strokeStyle = "#86f6ff";
-    ctx.lineWidth = 3;
-    ctx.shadowColor = "#5eeaff";
-    ctx.shadowBlur = 12;
+    const width = Math.max(2, px(3));
     ctx.beginPath();
-    ctx.moveTo(this.x, this.y + 15);
-    ctx.lineTo(this.x - this.vx * 0.008, this.y - 7);
-    ctx.stroke();
-    ctx.restore();
+    ctx.moveTo(this.x, this.y + px(15));
+    ctx.lineTo(this.x - this.vx * 0.008, this.y - px(7));
+    glowStroke(this.electric ? "#fff3a0" : "#86f6ff", width, { glow: width * 3.5, glowAlpha: this.electric ? 0.4 : 0.3 });
   }
 }
 
-class Player {
+/** Dano base do tiro: 1 + nível do upgrade de dano. */
+function playerBaseDamage() {
+  return 1 + SAVE.upgrades_level.damage * BALANCE.damagePerLevel;
+}
+
+/**
+ * Nave do jogador: movimento com inércia, tiros pelos canos da arte (SHIPS[].muzzles),
+ * escudo (resistência) e a animação de lançamento do hangar para a arena.
+ * Sinal emitido: "death" ({ player, asteroid?, projectile? }).
+ */
+class Player extends Signals {
+  /** Teclas que o jogo usa (as outras continuam funcionando normalmente no navegador). */
+  static ACTION_KEYS = ["arrowup", "arrowdown", "arrowleft", "arrowright", "a", "w", "s", "d", "enter", " "];
+  /** Canos padrão (bico) se a nave não tiver muzzles definidos. */
+  static DEFAULT_MUZZLES = [{ x: 0.5, y: 0, vx: 0 }];
+
   #skinIndex = SAVE.selectedShip;
   #keys = new Set();
   #launch = {};
   #isShooting = false;
   #lastShotTime = 0;
   #bullets = [];
-  #shoots = 1;
-  #listeners = new Map();
-  #ACTION_KEYS = [
-    "arrowup",
-    "arrowdown",
-    "arrowleft",
-    "arrowright",
-    "a",
-    "w",
-    "s",
-    "d",
-    "enter",
-    " ",
-  ];
+  #muzzles = Player.DEFAULT_MUZZLES; // pontos dos canos na arte (SHIPS[].muzzles)
 
   constructor() {
+    super();
     const { w, h } = viewport();
     this.x = w / 2;
-    this.y = h - 90;
+    this.y = h - px(90);
     this.vx = 0;
     this.vy = 0;
-    this.radius = 27;
-    this.width = 66;
-    this.height = 66;
+    this.applyScale();
     this.image = loadImage(ASSETS.ships[this.#skinIndex]);
     this.resistance = SAVE.upgrades_level.resistance * BALANCE.resistancePerLevel;
     this.maxResistance = this.resistance;
-    this.shieldProgress = 0;
-    this.shieldDisplayedResistance = 0;
+    this.shieldProgress = 0; // 0..1: animação do escudo aparecendo/sumindo
     this.acceleration = 1000;
     this.drag = 2.4;
-    this.fireRate = BALANCE.baseFireInterval - (SAVE.upgrades_level.fireRate * BALANCE.fireRatePerLevel);
-    this.invuln = 0;
-    this.hitbox = new Hitbox(this, (this.resistance) ? this.radius + 16 : this.radius);
+    this.fireRate = fireIntervalFor(SAVE.upgrades_level.fireRate);
+    this.hitbox = new Hitbox(this, this.radius);
+    this.updateHitbox();
 
     const onAsteroidContact = ({ other, group }) => {
+      // Tiros dos bosses
+      if (group === "enemyProjectiles") {
+        this.onProjectileHit(other);
+        return;
+      }
+
       if (group !== "asteroids") return;
-      if (effects.isInvulnerable() || this.invuln > 0 || other.dead) return;
+      // Invulnerável: nem a nave nem o ESCUDO tomam dano (a resistência não muda).
+      if (effects.isInvulnerable() || other.dead) return;
 
       // Próximo impacto após perder o escudo = Game Over
       if (this.resistance <= 0) {
@@ -88,23 +104,21 @@ class Player {
         return;
       }
 
-      const damage = Math.max(0, Number(other.hp) || 0); // Dano ao PLayer pelo impacto
-      other.destroy(); // Destrói o asteroide
-      this.resistance = Math.max(0, this.resistance - damage); // Aplica o dano à resistência
-
-      // Quando o escudo acaba, restaura a hitbox original
-      if (this.resistance <= 0) {
-        this.hitbox = new Hitbox(this, this.radius);
-
-        // Registra novamente o evento de colisão
-        this.hitbox.on("enter", onAsteroidContact);
+      // Boss não é destruído na batida: empurra a nave e tira um pedaço do escudo
+      if (other.boss) {
+        this.onBossContact(other);
+        return;
       }
+
+      const damage = other.contactDamage(); // dano da batida (setor + vida que resta no asteroide)
+      other.destroy("player"); // Destrói o asteroide (batida na nave: não conta como abate do jogador)
+      this.applyShieldDamage(damage);
     };
 
     this.hitbox.on("enter", onAsteroidContact);
     window.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
-      if (this.#ACTION_KEYS.includes(key)) {
+      if (Player.ACTION_KEYS.includes(key)) {
         this.#keys.add(key);
         event.preventDefault();
       }
@@ -120,7 +134,7 @@ class Player {
 
   update(dt) {
     // TIROS
-    if (["enter", " "].includes([...this.#keys]) || this.#isShooting)
+    if (this.#keys.has("enter") || this.#keys.has(" ") || this.#isShooting)
       this.shoot();
     this.#bullets.forEach(b => b.update(dt));
     this.#bullets = this.#bullets.filter(b => !b.dead);
@@ -144,19 +158,13 @@ class Player {
         this.shieldProgress - step
       );
 
-    // Guarda o último valor para exibir durante a animação
-    // de desaparecimento.
-    if (shieldActive) {
-      this.shieldDisplayedResistance = Math.ceil(this.resistance);
-    }
-
     // ============================
     // MOVIMENTAÇÃO
     // ============================
     const { w, h } = viewport();
     const speedMultiplier = effects.moveSpeedMultiplier(); // speedBoost
-    const maxSpeed = BALANCE.baseMoveSpeed * speedMultiplier;
-    const acceleration = this.acceleration * speedMultiplier;
+    const maxSpeed = px(BALANCE.baseMoveSpeed) * speedMultiplier;
+    const acceleration = px(this.acceleration) * speedMultiplier;
 
     // Direção desejada pelo jogador
     let dx = 0;
@@ -203,7 +211,7 @@ class Player {
     this.y += this.vy * dt;
 
     // LIMITES DA ARENA
-    const margin = this.radius + 8;
+    const margin = this.radius + px(8);
     const minX = margin;
     const maxX = Math.max(minX, w - margin);
     const minY = margin;
@@ -228,22 +236,16 @@ class Player {
       this.y = maxY;
       if (this.vy > 0) this.vy = 0;
     }
-
-    // Invulnerabilidade
-    // this.invuln = Math.max(0, this.invuln - dt);
   }
 
   /**
-   * Cria a animação da nave:
-   * - começa em startY;
-   * - diminui o scale até minScale;
-   * - sobe até sair pelo topo.
-   * - aparece abaixo da viewport;
-   * - sobe até endY;
-   * - recupera a escala até 1.
+   * Animação de lançamento (do hangar para a arena):
+   * 1ª metade: sai da posição da nave do menu, encolhe e sobe até sair pelo topo;
+   * 2ª metade: reaparece por baixo da tela, sobe até endY e volta ao tamanho de jogo (1.25).
+   * @returns {boolean} true quando a animação terminou
    */
   updateLaunch(dt) {
-    if (!this.#launch) return;
+    if (!this.#launch) return true;
     this.#launch.elapsed += dt;
     const { w, h } = viewport();
     const t = clamp(this.#launch.elapsed / this.#launch.duration, 0, 1);
@@ -272,6 +274,7 @@ class Player {
       this.y = this.#launch.endY;
       this.#launch.scale = 1.25;
     }
+    return t >= 1;
   }
 
   draw() {
@@ -284,10 +287,49 @@ class Player {
     ctx.scale(scale, scale);
     ctx.globalAlpha = 1;
     drawSprite(image, -width / 2, -height / 2, width, height);
-    if (state.mode != "launching") this.drawShield();
+    if (state.mode != "launching") {
+      this.drawShield();
+      if (effects.isInvulnerable()) this.drawInvulnerability();
+    }
     ctx.restore();
   }
 
+  /** Bolha dourada por cima do escudo enquanto o efeito invulnerability está ativo. */
+  drawInvulnerability() {
+    const t = performance.now() / 1000;
+    const remaining = effects.remaining("invulnerability");
+    // Pisca no último 1,5s para avisar que vai acabar
+    const blink = remaining < 1.5 ? 0.35 + 0.65 * Math.abs(Math.sin(t * 12)) : 1;
+    const radius = this.radius + px(8) + Math.sin(t * 5) * 1.5;
+
+    ctx.save();
+    ctx.globalAlpha *= blink;
+
+    // Preenchimento
+    const fill = ctx.createRadialGradient(0, 0, radius * 0.35, 0, 0, radius);
+    fill.addColorStop(0, "rgba(255, 226, 137, 0)");
+    fill.addColorStop(0.75, "rgba(255, 210, 103, .12)");
+    fill.addColorStop(1, "rgba(255, 210, 103, .32)");
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Contorno contínuo com brilho
+    glowStroke("rgba(255, 226, 137, .9)", 2, { glow: 10, glowAlpha: 0.35 });
+
+    // Anel tracejado girando
+    ctx.rotate(t * 1.8);
+    ctx.setLineDash([10, 8]);
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "rgba(255, 245, 200, .85)";
+    ctx.beginPath();
+    ctx.arc(0, 0, radius + 5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** Escudo: campo de força + até 3 arcos girando (menos arcos = menos resistência; o último pisca). */
   drawShield() {
     const resistance = Math.max(0, Number(this.resistance) || 0);
     const maxResistance = Number(this.maxResistance);
@@ -344,7 +386,7 @@ class Player {
       ? 0.3 + oscillation * 0.65
       : 0.8;
 
-    const radius = this.radius + 8;
+    const radius = this.radius + px(8);
     ctx.save();
 
     // ========================================
@@ -373,36 +415,25 @@ class Player {
 
     // Contorno
     ctx.globalAlpha = parentAlpha * progress * fieldOpacity;
-    ctx.strokeStyle = shieldColor;
-    ctx.lineWidth = 1.8;
-    ctx.shadowColor = shieldColor;
-    ctx.shadowBlur = critical
-      ? 12 + oscillation * 8
-      : 12;
-
-    ctx.stroke();
+    glowStroke(shieldColor, 1.8, { glow: critical ? 8 + oscillation * 6 : 8, glowAlpha: 0.3 });
 
     // ========================================
     // ARCOS DE ENERGIA
     // ========================================
     ctx.globalAlpha = parentAlpha * progress * arcOpacity;
-    ctx.strokeStyle = shieldColor;
-    ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
-    ctx.shadowColor = shieldColor;
-    ctx.shadowBlur = critical
-      ? 8 + oscillation * 10
-      : 0;
-
     const rotation = time * 0.8;
     const spacing = (Math.PI * 2) / 3;
-
+    ctx.beginPath();
     for (let i = 0; i < arcCount; i++) {
       const start = rotation + i * spacing;
-      const end = start + 0.65;
-
-      ctx.beginPath();
-      ctx.arc(0, 0, radius + 3, start, end);
+      ctx.moveTo(Math.cos(start) * (radius + 3), Math.sin(start) * (radius + 3));
+      ctx.arc(0, 0, radius + 3, start, start + 0.65);
+    }
+    if (critical) glowStroke(shieldColor, 2.5, { glow: 8 + oscillation * 8, glowAlpha: 0.35 });
+    else {
+      ctx.strokeStyle = shieldColor;
+      ctx.lineWidth = 2.5;
       ctx.stroke();
     }
 
@@ -420,6 +451,7 @@ class Player {
     return { width: img.naturalWidth * fit, height: img.naturalHeight * fit };
   }
 
+  /** Posição e largura (no canvas) da nave mostrada no hangar: o lançamento começa dali. */
   getMenuShipPose() {
     const ship = $("ship-preview");
     const shipRect = ship?.getBoundingClientRect();
@@ -442,6 +474,7 @@ class Player {
     };
   }
 
+  /** Prepara a animação de lançamento (duração em segundos). */
   setLaunchParam(duration = 2) {
     // Lê a pose ANTES de trocar de tela, enquanto a nave do menu ainda está visível.
     const pose = this.getMenuShipPose();
@@ -457,82 +490,118 @@ class Player {
       startY: pose.y,
       startScale,
       scale: startScale,
-      endY: h - 90,
+      endY: h - px(90),
     };
   }
 
+  /** Troca a arte da nave (índice em SHIPS). */
   setShipSkin(index) {
     this.#skinIndex = index;
     this.image = loadImage(ASSETS.ships[this.#skinIndex]);
   }
 
-  // Qantidade de tiros por nave
-  setShoots(n) {
-    this.#shoots = n;
+  /** Canos da nave atual: [{ x, y, vx }] com x/y em fração da imagem. */
+  setMuzzles(muzzles) {
+    this.#muzzles = muzzles?.length ? muzzles : Player.DEFAULT_MUZZLES;
   }
 
-  // Reseta o estado da nave para uma nova partida
+  /** Posição na tela de um cano, acompanhando tamanho e escala atuais da nave. */
+  muzzlePosition(muzzle) {
+    const { width, height } = this.getSpriteSize();
+    const scale = this.#launch?.scale ?? 1;
+    return {
+      x: this.x + (muzzle.x - 0.5) * width * scale,
+      y: this.y + (muzzle.y - 0.5) * height * scale,
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // Dano recebido
+  // ------------------------------------------------------------------
+
+  /** Tira resistência do escudo; quando ele acaba, a hitbox volta ao tamanho da nave. */
+  applyShieldDamage(amount) {
+    this.resistance = Math.max(0, this.resistance - Math.max(0, Number(amount) || 0));
+    if (this.resistance <= 0) this.updateHitbox();
+  }
+
+  /** Projétil de boss acertou a nave. O projétil some mesmo se a nave estiver invulnerável. */
+  onProjectileHit(projectile) {
+    if (!projectile || projectile.dead) return;
+    projectile.dead = true;
+    if (effects.isInvulnerable()) return;
+
+    if (this.resistance <= 0) {
+      this.emit("death", { player: this, projectile });
+      return;
+    }
+    this.applyShieldDamage(projectile.damage);
+  }
+
+  /**
+   * Batida no boss COM escudo: o escudo aguenta exatamente uma batida, seja qual for a
+   * vida do boss ou do escudo. O escudo se esgota inteiro, a nave sobrevive (e é empurrada
+   * para longe) e o boss não toma dano. Sem escudo, a batida mata (tratado antes).
+   */
+  onBossContact(boss) {
+    const dx = this.x - boss.x;
+    const dy = this.y - boss.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    this.vx += (dx / distance) * px(420);
+    this.vy += (dy / distance) * px(420);
+    this.applyShieldDamage(this.resistance); // esgota o escudo inteiro
+  }
+
+  /** Tamanho da nave acompanha a escala da tela (66px e raio 27 na tela de referência). */
+  applyScale() {
+    this.radius = px(27);
+    this.width = px(66);
+    this.height = px(66);
+    this.updateHitbox();
+  }
+
+  /** Com escudo a hitbox é maior (a bolha do escudo); sem escudo, só a nave. */
+  updateHitbox() {
+    if (!this.hitbox) return;
+    this.hitbox.radius = this.resistance > 0 ? this.radius + px(16) : this.radius;
+  }
+
+  /** Lê os upgrades do save (resistência e cadência). */
+  applyUpgrades() {
+    this.maxResistance = SAVE.upgrades_level.resistance * BALANCE.resistancePerLevel;
+    this.fireRate = fireIntervalFor(SAVE.upgrades_level.fireRate);
+  }
+
+  /** Prepara a nave para uma nova partida (upgrades comprados no hangar já valem). */
   retryLevel() {
+    this.applyUpgrades();
     this.vx = 0;
     this.vy = 0;
-    this.invuln = 0;
     this.#isShooting = false;
     this.resistance = this.maxResistance;
     this.shieldProgress = 0;
     this.#bullets = [];
+    this.updateHitbox();
   }
 
+  /** Atira por todos os canos, respeitando a cadência (e o card de tiro rápido). */
   shoot() {
     const now = performance.now();
-    const fireInterval = this.fireRate * effects.fireIntervalMultiplier(); // quickShot
-    if (now - this.#lastShotTime >= fireInterval) {
-      this.#lastShotTime = now;
-      playTone(560, 0.035, 0.018, "square"); // SOM do tiro
-      switch (this.#shoots) {
-        case 4:
-          // Tiro Quádruplo
-          this.#bullets.push(new Bullet(player.x - 6, player.y - 12, -58));
-          this.#bullets.push(new Bullet(player.x - 2, player.y - 15, -22));
-          this.#bullets.push(new Bullet(player.x + 2, player.y - 15, 22));
-          this.#bullets.push(new Bullet(player.x + 6, player.y - 12, 58));
-          break;
-        case 3:
-          // Tiro Triplo
-          this.#bullets.push(new Bullet(player.x - 3, player.y - 12, -52));
-          this.#bullets.push(new Bullet(player.x, player.y - 15, 0));
-          this.#bullets.push(new Bullet(player.x + 3, player.y - 12, 52));
-          break;
-        case 2:
-          // Tiro Duplo
-          this.#bullets.push(new Bullet(player.x - 3, player.y - 15, -22));
-          this.#bullets.push(new Bullet(player.x + 3, player.y - 15, 22));
-          break;
-        case 1:
-        default:
-          // Tiro Simples
-          this.#bullets.push(new Bullet(player.x, player.y - 29, 0));
-          break;
-      }
+    const fireInterval = this.fireRate * effects.fireIntervalMultiplier();
+    if (now - this.#lastShotTime < fireInterval) return;
+    this.#lastShotTime = now;
+    playTone(560, 0.035, 0.018, "square");
+    for (const muzzle of this.#muzzles) {
+      const { x, y } = this.muzzlePosition(muzzle);
+      this.#bullets.push(new Bullet(x, y, muzzle.vx ?? 0));
     }
   }
 
-  // ------------------------------------------------------------------
-  // Sinais: player.on("death", ({ player, asteroid }) => { ... })
-  // ------------------------------------------------------------------
-  on(signal, callback) {
-    if (typeof callback !== "function") throw new TypeError("O listener deve ser uma função");
-    if (!this.#listeners.has(signal)) this.#listeners.set(signal, new Set());
-    this.#listeners.get(signal).add(callback);
-    return () => this.#listeners.get(signal)?.delete(callback);
-  }
-
-  emit(signal, payload = {}) {
-    for (const callback of [...(this.#listeners.get(signal) ?? [])]) callback(payload);
-  }
-
+  /** Tiros da nave que ainda estão na tela. */
   get bullets() {
     return this.#bullets;
   }
 }
 
+/** A nave do jogador (instância única). */
 const player = new Player();

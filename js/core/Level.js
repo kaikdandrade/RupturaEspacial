@@ -1,37 +1,79 @@
 "use strict";
 
+/**
+ * @file Setores. O jogo não tem setor máximo: todas as curvas (BALANCE.levels)
+ * crescem para sempre, rápido no começo e devagar depois.
+ */
 class Level {
-  #defConfig() {
-    const isLevelBoss = this.number % 5 === 0;
-    const enemies = {
-      hp: {
-        min: 1 + Math.floor((this.number - 1) * 0.72),
-        max: (1 + Math.floor((this.number - 1) * 0.72)) + 2 + Math.floor(this.number / 4),
-      },
-      speed: 82 + Math.min(118, (this.number - 1) * 4.8),
-    };
-    const specialChance = Math.min(0.38, 0.08 + Math.max(0, this.number - 2) * 0.025);
-    const helperCap = isLevelBoss ? Math.min(11, 5 + Math.floor(this.number / 10)) : 0;
-
-    return {
-      number: this.number,
-      isLevelBoss,
-      enemies,
-      specialChance,
-      helperCap,
-    };
+  /** Curva suave: base no setor 1, sobe rápido e se aproxima de base + soft (sem passar). */
+  static soft(n, { base, soft, tau }) {
+    return base + soft * (1 - Math.exp(-(n - 1) / tau));
   }
 
+  /** Vida média dos asteroides do setor n. */
+  static averageHp(n) {
+    const { base, perLevel, curve } = BALANCE.levels.hp;
+    return base + perLevel * (n - 1) + curve * (n - 1) ** 2;
+  }
+
+  /** Asteroides do objetivo do setor n. */
+  static count(n) {
+    const c = BALANCE.levels.count;
+    return Math.round(Level.soft(n, c) + c.perLevelAfter * Math.max(0, n - c.after));
+  }
+
+  /** Asteroides ao mesmo tempo na arena no setor n. */
+  static activeCap(n) {
+    const a = BALANCE.levels.active;
+    return Math.round(Level.soft(n, a)) + Math.floor(Math.max(0, n - a.after) / a.every);
+  }
+
+  /** Velocidade base dos asteroides do setor n (px/s na tela de referência). */
+  static speed(n) {
+    const s = BALANCE.levels.speed;
+    return Level.soft(n, s) + s.perLevelAfter * Math.max(0, n - s.after);
+  }
+
+  /** Dano da batida de um asteroide com vida cheia no setor n. */
+  static contactDamage(n) {
+    const { base, perLevel, curve, activeRef } = BALANCE.levels.contact;
+    const raw = base + perLevel * (n - 1) + curve * (n - 1) ** 2;
+    return raw * Math.sqrt(activeRef / Level.activeCap(n));
+  }
+
+  /** Configuração do setor atual: vida, velocidade, dano de batida e chance de especial. */
+  #defConfig() {
+    const n = this.number;
+    const L = BALANCE.levels;
+    const isLevelBoss = n % 5 === 0;
+    const avg = Level.averageHp(n);
+    const min = Math.max(1, Math.round(avg * (1 - L.hp.spread)));
+    const max = Math.max(min + 1, Math.round(avg * (1 + L.hp.spread)));
+    const enemies = {
+      hp: { min, max },
+      averageHp: avg,
+      speed: Level.speed(n),
+      contact: Level.contactDamage(n),
+    };
+    // Especiais: nenhum antes do desbloqueio; depois sobem devagar até o teto
+    const specialChance = n < LEVEL_UNLOCK_SPECIALS ? 0
+      : Math.min(L.special.max, L.special.start + (n - LEVEL_UNLOCK_SPECIALS) * L.special.perLevel);
+
+    return { number: n, isLevelBoss, enemies, specialChance };
+  }
+
+  /** Quantos asteroides o setor tem, quantos ao mesmo tempo e o ritmo dos lotes. */
   #defSpawnPlan() {
-    const max = 60 + (GROWTH_SPAWN * Math.floor((this.number - 1) / 100));
-    const total = Math.min(max, 10 + Math.floor((this.number - 1) * 1.35));
-    const batchMin = total >= 18 ? 2 : 1;
-    const batchMax = total >= 42 ? 5 : clamp(Math.ceil(Math.sqrt(total)), 4, 6);
-    const activeCap = clamp(batchMax + Math.floor(this.number / 8), 6, 14);
-    const intervalMin = Math.max(1.25, 1.85 - this.number * 0.012);
-    const intervalMax = Math.max(intervalMin + 0.3, 2.35 - this.number * 0.01);
+    const n = this.number;
+    const total = Level.count(n);
+    const activeCap = Level.activeCap(n);
+    // Entram em lotes: no máximo metade da arena de uma vez
+    const batchMax = clamp(Math.ceil(activeCap / 2), 2, 6);
+    const batchMin = n >= 15 ? 2 : 1;
+    const intervalMin = Math.max(1.1, 1.85 - n * 0.012);
+    const intervalMax = Math.max(intervalMin + 0.3, 2.35 - n * 0.01);
     return {
-      total: total,
+      total,
       spawned: 0,
       batchMin,
       batchMax,
@@ -42,40 +84,32 @@ class Level {
     };
   }
 
-  set(nlevel = 1) {
-    this.number = nlevel;
+  /**
+   * Prepara o setor n: configuração, plano de geração e um estado de partida limpo.
+   * @param {number} n número do setor (1, 2, 3...)
+   */
+  set(n = 1) {
+    this.number = n;
     const config = this.#defConfig();
 
     Object.assign(state, {
-      playing: {
-        time: 0,
-        score: 0,
-        effects: effects.reset(),
-        kills: {
-          total: 0,
-          common: 0,
-          freeze: 0,
-          mystic: 0,
-          vulcanic: 0,
-          thorny: 0,
-          cyber: 0,
-          gravity: 0,
-          resistance: 0,
-          fractional: 0,
-          fractionalSlice: 0,
-        },
-      },
+      playing: { time: 0, score: 0, combo: { count: 0, timer: 0 }, kills: { total: 0 }, result: null, coins: 0 },
       levelConfig: config,
-      spawnPlan: this.#defSpawnPlan(config),
-      // waveEntered: false,
-      lastSpawn: 0,
-      lastShot: -9999,
+      spawnPlan: this.#defSpawnPlan(),
       shake: 0,
       flash: 0,
-      // boss: null,
+      boss: null,
+      bossType: null,
+      bossSpawned: false,
+      bossTotalHp: 0,
       bossSummonTimer: 0,
     });
+
+    // Efeitos zerados; o dano deles é uma fração da vida média dos asteroides deste setor
+    effects.reset();
+    effects.setDifficulty(config.enemies.averageHp);
   }
 }
 
+/** Setor atual. */
 const level = new Level();

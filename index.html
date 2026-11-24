@@ -171,26 +171,35 @@
 
     <!-- HUD de partida -->
     <section id="hud" class="screen" aria-label="Informações da fase">
-      <div id="effectsBar" class="effects-bar"></div>
-      <div class="hub-progress">
-        <span>SETOR</span><strong id="selectedLevel">1</strong>
-      </div>
-      <div class="hub-objective">
-        <span id="hubObjectiveLabel">RESTANTES</span>
-        <strong><b id="hubKills">0</b>/<b id="hubTarget">0</b></strong>
-        <div class="progress-track">
-          <span id="levelProgressBar"></span>
+      <!-- Barra única: setor | progresso | pontuação | tempo -->
+      <div class="hud-strip">
+        <div class="hud-seg hud-sector">
+          <span class="hud-label">Setor</span>
+          <strong id="selectedLevel" class="hud-value">01</strong>
+        </div>
+        <div class="hud-seg hud-goal">
+          <div class="hud-goal-head">
+            <span id="hubObjectiveLabel" class="hud-label">Asteroides</span>
+            <strong class="hud-value"><b id="hubKills">0</b><small> / <b id="hubTarget">0</b></small></strong>
+          </div>
+          <div class="hud-track"><span id="levelProgressBar"></span></div>
+        </div>
+        <div class="hud-seg hud-cell">
+          <span class="hud-label">Pontuação</span>
+          <strong id="playScore" class="hud-value">0</strong>
+        </div>
+        <div class="hud-seg hud-cell">
+          <span class="hud-label">Tempo</span>
+          <strong id="playTime" class="hud-value">00:00</strong>
         </div>
       </div>
-      <div class="hub-progress">
-        <span>PONTUAÇÃO</span><strong id="playScore">0</strong>
-      </div>
-      <div class="hub-progress">
-        <span>TEMPO</span><strong id="playTime">00:00</strong>
-      </div>
-      <button id="pauseButton" class="hub-button" type="button" aria-label="Pausar">
+
+      <button id="pauseButton" class="hub-button hud-pause" type="button" aria-label="Pausar">
         <img src="assets/icons/pause.png" alt="Ícone de pause" />
       </button>
+
+      <!-- Efeitos ativos (preenchido pelo JS: updateEffectsHud) -->
+      <div id="effectsBar" class="effects-bar"></div>
     </section>
   </main>
 
@@ -213,7 +222,7 @@
             </div>
 
             <div class="stat">
-              <span>Asteroides destruídos</span>
+              <span id="pauseKillsLabel">Asteroides destruídos</span>
               <strong id="pauseKills">0</strong>
             </div>
 
@@ -276,21 +285,46 @@
     <!-- Modal vitória do nível -->
     <dialog id="levelCompleted" class="modal" aria-label="Nível concluído">
       <header class="modal-header">
-        <h2>Nível <span id="completeLevel">1</span> concluído!</h2>
+        <img class="result-hero" src="assets/icons/trophy.png" alt="" />
+        <h2>Setor concluído!</h2>
+        <p class="result-sub">Tempo de missão <strong id="completeTime">00:00</strong></p>
       </header>
 
       <div class="modal-content">
-        <div class="result-grid">
-          <div><span>Pontuação</span><strong id="completeScore">0</strong></div>
-          <div><span>Destruídos</span><strong id="completeDestroyed">0</strong></div>
-          <div><span>Centelhas</span><strong class="currency"><span id="completeBonus">+0</span><img src="assets/icons/sparks.png" alt="centelhas" /></strong></div>
+        <!-- Setor + progresso (sempre completo) -->
+        <div class="go-sector">
+          <div class="go-sector-num"><small>Setor</small><strong id="completeSector">01</strong></div>
+          <div class="go-progress">
+            <div class="go-progress-head">
+              <span id="completeProgressLabel">Asteroides destruídos</span>
+              <strong><span id="completeDestroyed">0</span><small> / <span id="completeTotal">0</span></small></strong>
+            </div>
+            <div class="go-track"><span id="completeProgressBar"></span></div>
+          </div>
         </div>
+
+        <div class="go-cards">
+          <div class="go-card go-card--score">
+            <img src="assets/icons/trophy.png" alt="" />
+            <div>
+              <span>Pontuação</span>
+              <strong id="completeScore">0</strong>
+              <em id="completeRecord" class="record-badge" hidden>Novo recorde!</em>
+            </div>
+          </div>
+          <div class="go-card go-card--coins">
+            <img src="assets/icons/sparks.png" alt="" />
+            <div><span>Centelhas</span><strong id="completeBonus">+0</strong></div>
+          </div>
+        </div>
+        <!-- id mantido para compatibilidade: número do setor no título antigo -->
+        <span id="completeLevel" hidden>1</span>
       </div>
 
       <footer class="modal-footer">
+        <button id="nextLevelPlayButton" class="btn btn--primary" type="button">Jogar próximo setor</button>
+        <button class="btn btn-retry" type="button">Jogar novamente</button>
         <button class="btn btn-hangar" type="button">Voltar ao hangar</button>
-        <button id="completeRetryButton" class="btn" type="button">Jogar novamente</button>
-        <button id="nextLevelPlayButton" class="btn btn--primary" type="button">Jogar próximo nível</button>
       </footer>
     </dialog>
 
@@ -307,7 +341,7 @@
           <div class="go-sector-num"><small>Setor</small><strong id="resultLevel">01</strong></div>
           <div class="go-progress">
             <div class="go-progress-head">
-              <span>Asteroides destruídos</span>
+              <span id="resultProgressLabel">Asteroides destruídos</span>
               <strong><span id="resultKills">0</span><small> / <span id="resultTotal">0</span></small></strong>
             </div>
             <div class="go-track"><span id="resultProgressBar"></span></div>
@@ -321,13 +355,13 @@
           </div>
           <div class="go-card go-card--coins">
             <img src="assets/icons/sparks.png" alt="" />
-            <div><span>Créditos</span><strong id="resultCoins">+0</strong></div>
+            <div><span>Centelhas</span><strong id="resultCoins">+0</strong></div>
           </div>
         </div>
       </div>
 
       <footer class="modal-footer">
-        <button id="retryButton" class="btn btn--primary" type="button">Tentar novamente</button>
+        <button class="btn btn--primary btn-retry" type="button">Tentar novamente</button>
         <button class="btn btn-hangar" type="button">Voltar ao hangar</button>
       </footer>
     </dialog>
@@ -338,6 +372,7 @@
         <div>
           <h2>Arquivo de ameaças</h2>
           <p>Conheça os asteroides comuns, os especiais e as mecânicas exclusivas dos bosses.</p>
+          <p class="guide-total">Total derrotado <strong id="archiveTotal">0</strong></p>
         </div>
         <button type="button" aria-label="Fechar" class="close-modal" title="Fechar">
           <img src="assets/icons/x.png" alt="" />
@@ -345,82 +380,107 @@
       </header>
 
       <div class="asteroid-guide">
-        <h3 class="guide-section">Comuns</h3>
+        <h3 class="guide-section">Comuns <span class="guide-section-count" data-kills-category="common">0</span></h3>
         <article class="guide-card">
           <img src="assets/asteroids/common/asteroid_1.png" alt="Asteroide comum">
           <div>
             <h4>Comum</h4>
             <p>A ameaça mais frequente. Atravessa o campo <strong>sem efeitos extras</strong>; cada um
               destruído conta para o objetivo do setor.</p>
+            <span class="guide-kills" data-kills-for="common">0 derrotados</span>
           </div>
         </article>
 
-        <h3 class="guide-section">Especiais</h3>
+        <h3 class="guide-section">Especiais <span class="guide-section-count" data-kills-category="special">0</span></h3>
         <article class="guide-card">
-          <img src="assets/asteroids/special/fractional.png" alt="Asteroide Fracional">
+          <img src="assets/asteroids/special/frozen.png" alt="Asteroide Glacial">
           <div>
-            <h4>Fracional</h4>
-            <p>Ao ser destruído, se divide aleatoriamente em <strong>2 a 5 slices menores</strong>, que
-              continuam atravessando o campo.</p>
-          </div>
-        </article>
-        <article class="guide-card">
-          <img src="assets/asteroids/special/frozen.png" alt="Asteroide Frozen">
-          <div>
-            <h4>Frozen</h4>
-            <p>Dropa um card desconhecido. Pode <strong>desacelerar os asteroides</strong> ou, como
-              debuff, <strong>desacelerar sua nave</strong> por alguns segundos.</p>
-          </div>
-        </article>
-        <article class="guide-card">
-          <img src="assets/asteroids/special/mystic.png" alt="Asteroide Mystic">
-          <div>
-            <h4>Mystic</h4>
-            <p>Sempre deixa um <strong>buff positivo</strong>: dano maior, cadência, multishot ou
-              velocidade temporária.</p>
+            <h4>Glacial</h4>
+            <p>Dropa um card de gelo: <strong>deixa os asteroides lentos</strong> por alguns segundos. Pegando outro com ele ativo, <strong>congela tudo</strong>. O frio também fere os Vulcânicos.</p>
+            <span class="guide-kills" data-kills-for="frozen">0 derrotados</span>
           </div>
         </article>
         <article class="guide-card">
           <img src="assets/asteroids/special/volcanic.png" alt="Asteroide Vulcânico">
           <div>
             <h4>Vulcânico</h4>
-            <p>Dropa um card desconhecido. O buff incendeia todos os asteroides da tela com <strong>dano
-                periódico</strong>; o debuff reduz seu dano em <strong>5</strong> temporariamente.</p>
+            <p>Dropa um card de fogo: <strong>queima todos os asteroides</strong> com dano contínuo. Pegando outro com ele ativo, tudo <strong>explode</strong>. Fogo com gelo ativo vira uma explosão ainda maior.</p>
+            <span class="guide-kills" data-kills-for="volcanic">0 derrotados</span>
+          </div>
+        </article>
+        <article class="guide-card">
+          <img src="assets/asteroids/special/mystic.png" alt="Asteroide Místico">
+          <div>
+            <h4>Místico</h4>
+            <p>Sempre deixa um <strong>buff para a nave</strong>: pontos extras, tiro rápido, velocidade, dano extra, tiro perfurante ou invulnerabilidade.</p>
+            <span class="guide-kills" data-kills-for="mystic">0 derrotados</span>
+          </div>
+        </article>
+        <article class="guide-card">
+          <img src="assets/asteroids/special/electric.png" alt="Asteroide Elétrico">
+          <div>
+            <h4>Elétrico</h4>
+            <p>Dropa um card de raio: por alguns segundos cada tiro que acerta <strong>solta um raio que pula para os asteroides próximos</strong>, com dano em cascata. Com gelo ativo, o raio pula ainda mais.</p>
+            <span class="guide-kills" data-kills-for="electric">0 derrotados</span>
+          </div>
+        </article>
+        <article class="guide-card">
+          <img src="assets/asteroids/special/golden.png" alt="Asteroide Dourado">
+          <div>
+            <h4>Dourado</h4>
+            <p>Mais resistente e mais rápido. Não dropa card: ao ser destruído dá um <strong>grande bônus de pontuação</strong> na hora.</p>
+            <span class="guide-kills" data-kills-for="golden">0 derrotados</span>
           </div>
         </article>
 
-        <h3 class="guide-section">Bosses</h3>
+        <h3 class="guide-section">Bosses <span class="guide-section-count" data-kills-category="boss">0</span></h3>
         <article class="guide-card boss-card">
-          <img src="assets/asteroids/bosses/resistance.png" alt="Boss Resistance">
+          <img src="assets/asteroids/bosses/resistance.png" alt="Boss Resistente">
           <div>
-            <h4>Resistance</h4>
-            <p>Boss com <strong>armadura e vida muito maiores</strong>. É preciso destruir toda a
-              armadura antes de atingir a vida real, enquanto ele continua invocando reforços.</p>
+            <h4>Resistente</h4>
+            <p>Tem uma <strong>armadura que precisa ser quebrada</strong> antes da vida e que se regenera aos poucos. Como a luta é longa, a arena manda asteroides e especiais para ajudar.</p>
+            <span class="guide-kills" data-kills-for="resistance">0 derrotados</span>
           </div>
         </article>
         <article class="guide-card boss-card">
-          <img src="assets/asteroids/bosses/gravity.png" alt="Boss Gravity">
+          <img src="assets/asteroids/bosses/gravity.png" alt="Boss Gravitacional">
           <div>
-            <h4>Gravity</h4>
-            <p>Começa com asteroides <strong>presos em órbita como escudos</strong>. Enquanto houver um
-              satélite, o núcleo não recebe dano. Ele avança sobre a nave e repõe proteção com novos
-              reforços.</p>
+            <h4>Gravitacional</h4>
+            <p>Não cria asteroides: <strong>rouba os da arena</strong>, prende em órbita como escudo e <strong>arremessa na nave</strong>. Perto dele nada congela.</p>
+            <span class="guide-kills" data-kills-for="gravity">0 derrotados</span>
           </div>
         </article>
         <article class="guide-card boss-card">
-          <img src="assets/asteroids/bosses/thorny.png" alt="Boss Thorn">
+          <img src="assets/asteroids/bosses/thorny.png" alt="Boss Espinhoso">
           <div>
-            <h4>Thorn</h4>
-            <p>Dispara <strong>Thorn Spikes continuamente</strong> e ainda invoca outros asteroides.
-              Seus spikes são mais rápidos que na mecânica original.</p>
+            <h4>Espinhoso</h4>
+            <p>Solta <strong>anéis de espinhos</strong> que cravam no ar e disparam na nave, além de espirais e rajadas miradas. A arena só manda um especial de vez em quando.</p>
+            <span class="guide-kills" data-kills-for="thorny">0 derrotados</span>
           </div>
         </article>
         <article class="guide-card boss-card">
-          <img src="assets/asteroids/bosses/cyber.png" alt="Boss Cyber">
+          <img src="assets/asteroids/bosses/cyber.png" alt="Boss Cibernético">
           <div>
-            <h4>Cyber</h4>
-            <p>Mantém o olho travado na nave e dispara <strong>esferas azuis teleguiadas com muito mais
-                frequência e velocidade</strong>, além de chamar reforços.</p>
+            <h4>Cibernético</h4>
+            <p>Mantém o olho travado na nave e dispara <strong>esferas de energia teleguiadas</strong>. A arena só manda um especial de vez em quando.</p>
+            <span class="guide-kills" data-kills-for="cyber">0 derrotados</span>
+          </div>
+        </article>
+        <article class="guide-card boss-card">
+          <img src="assets/asteroids/bosses/hydra.png" alt="Boss Hidra">
+          <div>
+            <h4>Hidra</h4>
+            <p>Cospe <strong>ácido</strong> na nave. Com metade da vida <strong>se divide em duas</strong>, e cada metade se divide de novo: no fim são quatro Hidras menores e mais rápidas.</p>
+            <span class="guide-kills" data-kills-for="hydra">0 derrotados</span>
+          </div>
+        </article>
+        <article class="guide-card boss-card">
+          <img src="assets/asteroids/bosses/binary_blue.png" alt="Boss Binário">
+          <div>
+            <h4>Binário</h4>
+            <p>Dois núcleos girando juntos, ligados por um <strong>feixe de energia</strong> que fere a nave.
+              Se um cair, o outro <strong>revive o parceiro</strong> em poucos segundos: derrube os dois quase juntos.</p>
+            <span class="guide-kills" data-kills-for="binary">0 derrotados</span>
           </div>
         </article>
       </div>
@@ -428,15 +488,39 @@
     </dialog>
   </aside>
 
+  <!-- Ordem importa: cada arquivo só usa o que já foi carregado acima dele (ver js/main.js) -->
+  <!-- Núcleo -->
+  <script src="js/core/config.js"></script>
+  <script src="js/core/dom.js"></script>
+  <script src="js/core/utils.js"></script>
+  <script src="js/core/render.js"></script>
   <script src="js/core/Data.js"></script>
   <script src="js/core/Collisions.js"></script>
-  <script src="js/entity/Effects.js"></script>
-  <script src="js/core/metadata.js"></script>
-  <script src="js/core/utils.js"></script>
+  <script src="js/core/Effects.js"></script>
   <script src="js/core/Level.js"></script>
+  <script src="js/core/state.js"></script>
+  <!-- Entidades -->
   <script src="js/entity/Player.js"></script>
-  <script src="js/entity/Asteroid.js"></script>
   <script src="js/entity/PickupCard.js"></script>
+  <script src="js/entity/asteroids/Asteroid.js"></script>
+  <script src="js/entity/asteroids/CommonAsteroid.js"></script>
+  <script src="js/entity/asteroids/special/FrozenAsteroid.js"></script>
+  <script src="js/entity/asteroids/special/VolcanicAsteroid.js"></script>
+  <script src="js/entity/asteroids/special/MysticAsteroid.js"></script>
+  <script src="js/entity/asteroids/special/ElectricAsteroid.js"></script>
+  <script src="js/entity/asteroids/special/GoldenAsteroid.js"></script>
+  <script src="js/entity/asteroids/bosses/BossAsteroid.js"></script>
+  <script src="js/entity/asteroids/bosses/ThornyBoss.js"></script>
+  <script src="js/entity/asteroids/bosses/HydraBoss.js"></script>
+  <script src="js/entity/asteroids/bosses/GravityBoss.js"></script>
+  <script src="js/entity/asteroids/bosses/BinaryBoss.js"></script>
+  <script src="js/entity/asteroids/bosses/ResistanceBoss.js"></script>
+  <script src="js/entity/asteroids/bosses/CyberBoss.js"></script>
+  <!-- Jogo e interface -->
+  <script src="js/game/fx.js"></script>
+  <script src="js/game/progress.js"></script>
+  <script src="js/game/spawner.js"></script>
+  <script src="js/ui/interface.js"></script>
   <script src="js/main.js"></script>
   <script src="js/game_loop.js"></script>
 </body>

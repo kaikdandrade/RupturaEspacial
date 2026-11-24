@@ -1,39 +1,46 @@
 "use strict";
 
+/**
+ * @file Save do jogo no localStorage. Esta classe SÓ lê e grava os dados;
+ * o que fazer com eles (somar centelhas, liberar setores...) fica em game/progress.js.
+ */
 class Data {
-  #STORAGE_KEY = "RUPTURA_ESPACIAL_SAVE";
-  #defaultSave = {
-    coins: 0,
-    selectedShip: 0,
-    ownedShips: [true, false, false, false],
-    bestScore: 0,
-    highestLevel: 1,
-    selectedLevel: 1,
+  /** Chave do save no localStorage. */
+  static STORAGE_KEY = "RUPTURA_ESPACIAL_SAVE";
+
+  /** Save de um jogador novo. */
+  static DEFAULT_SAVE = {
+    coins: 0,                                      // centelhas
+    selectedShip: 0,                               // índice em SHIPS
+    ownedShips: [true, false, false, false],       // naves compradas
+    bestScore: 0,                                  // recorde de pontuação
+    highestLevel: 0,                               // maior setor VENCIDO (0 = nenhum)
+    selectedLevel: 1,                              // setor escolhido no hangar
     upgrades_level: { damage: 0, fireRate: 0, resistance: 0 },
-    kills: {
-      common: 0,
-      freeze: 0,
-      mystic: 0,
-      vulcanic: 0,
-      thorny: 0,
-      cyber: 0,
-      gravity: 0,
-      resistance: 0,
-      fractional: 0,
-      fractionalSlice: 0,
-    },
+    kills: {},                                     // total derrotado por tipo: { common: 12, frozen: 3, ... }
   };
 
-  loadSave() {
-    if (localStorage.getItem(this.#STORAGE_KEY) && localStorage.getItem(this.#STORAGE_KEY) !== "undefined")
-      return JSON.parse(localStorage.getItem(this.#STORAGE_KEY));
-    else return this.#defaultSave;
+  /**
+   * Lê o save do localStorage. Sem save (ou com save ilegível), começa do zero.
+   * Campos que faltarem no save gravado recebem o valor padrão.
+   * @returns {typeof Data.DEFAULT_SAVE}
+   */
+  load() {
+    const fresh = structuredClone(Data.DEFAULT_SAVE);
+    try {
+      const raw = localStorage.getItem(Data.STORAGE_KEY);
+      return raw ? { ...fresh, ...JSON.parse(raw) } : fresh;
+    } catch {
+      return fresh;
+    }
   }
 
-  storeSave(save) {
-    localStorage.setItem(this.#STORAGE_KEY, JSON.stringify(save));
+  /** Grava o save no localStorage. */
+  save(save) {
+    localStorage.setItem(Data.STORAGE_KEY, JSON.stringify(save));
   }
 }
 
 const DATA = new Data();
-const SAVE = DATA.loadSave();
+/** Save do jogador, carregado ao abrir o jogo. Altere e chame DATA.save(SAVE) para gravar. */
+const SAVE = DATA.load();

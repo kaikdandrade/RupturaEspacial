@@ -127,7 +127,7 @@
 .modal-header h2,
 .heading-title,
 .hub-progress strong,
-.hub-objective strong,
+.hud-value,
 .stat strong,
 .result-grid > div strong,
 .go-sector-num strong,
@@ -144,7 +144,6 @@
 /* ========== Componentes compartilhados ========== */
 
 .hub-progress,
-.hub-objective,
 .hub-button,
 .level {
   border: 1px solid var(--line-strong);
@@ -162,7 +161,6 @@
 }
 
 .hub-progress span,
-.hub-objective > span,
 .stat,
 .result-grid > div {
   color: var(--muted);
@@ -810,6 +808,8 @@
   align-items: center;
   gap: 6px;
 
+  &[hidden] { display: none; } /* cadência no máximo: o preço some */
+
   img {
     width: 24px;
     height: 24px;
@@ -925,71 +925,85 @@
   z-index: 2;
   width: 100%;
   height: var(--arena-top);
-  padding-block: 0;
-  grid-template-columns: 1fr auto minmax(7rem, 16rem) auto auto 1fr;
-  align-items: center;
-  gap: var(--gap-sm);
+  padding: 0;
   pointer-events: none; /* não bloqueia o toque no canvas */
 
   &.active {
-    display: grid;
+    display: block;
     --rise: -14px;
     animation: rise 0.5s var(--ease-out) both;
   }
-
-  > :first-child { grid-column: 2; }
-
-  .hub-button {
-    justify-self: end;
-    pointer-events: auto;
-  }
-
-  /* Telas estreitas: o bloco de progresso encolhe para caber os 5 itens */
-  @media (width <= 640px) {
-    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
-    gap: 6px;
-
-    > :first-child { grid-column: 1; }
-
-    .hub-progress {
-      min-width: 0;
-      padding-inline: 8px;
-    }
-
-    .hub-objective {
-      min-width: 0;
-      gap: 6px;
-
-      > span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    }
-  }
 }
 
-.hub-objective {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 6px 12px;
-  min-height: var(--chip-h);
-  padding: 8px clamp(10px, 1.4vw, 14px);
+/* Barra única centralizada */
+.hud-strip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  display: flex;
+  align-items: stretch;
+  height: var(--chip-h);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgb(14 24 66 / 0.9), rgb(6 10 34 / 0.9));
+  box-shadow: var(--highlight), 0 10px 30px rgb(0 0 0 / 0.35);
+}
 
-  strong {
-    font-size: clamp(0.8rem, 1.4vw, 0.95rem);
-    font-variant-numeric: tabular-nums;
-  }
+.hud-seg {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 0 18px;
+
+  & + & { border-left: 1px solid var(--line); }
+}
+
+.hud-label {
+  color: var(--muted);
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hud-value {
+  color: var(--text);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 
   b { font-weight: inherit; }
 }
 
-#hubKills { color: var(--cyan); }
-#hubTarget { color: var(--muted); }
+.hud-sector {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  background: rgb(112 235 255 / 0.06);
 
-.progress-track {
-  grid-column: 1 / -1;
+  .hud-value { color: var(--cyan); font-size: 1.45rem; }
+}
+
+.hud-goal {
+  width: clamp(150px, 22vw, 240px);
+
+  .hud-value { font-size: 0.95rem; }
+  small { color: var(--muted); font-size: 0.75em; }
+}
+
+.hud-goal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.hud-track {
   height: 6px;
   overflow: hidden;
   border-radius: 999px;
@@ -1004,116 +1018,132 @@
   background:
     linear-gradient(90deg, transparent, rgb(255 255 255 / 0.45), transparent) 0 0 / 40% 100% no-repeat,
     linear-gradient(90deg, var(--cyan-strong), var(--success));
-  box-shadow: 0 0 12px rgb(112 235 255 / 0.5);
+  box-shadow: 0 0 10px rgb(112 235 255 / 0.5);
   transition: width 0.3s var(--ease-out);
   animation: shimmer 2.2s linear infinite;
+}
+
+.hud-cell {
+  align-items: center;
+  min-width: 96px;
+
+  .hud-value { font-size: 1.1rem; }
+}
+
+.hud-pause {
+  position: absolute;
+  top: 50%;
+  right: clamp(10px, 2vw, 18px);
+  translate: 0 -50%;
+  pointer-events: auto;
+
+  @media (hover: hover) {
+    &:not(:disabled):hover { translate: 0 calc(-50% - 2px); }
+  }
+}
+
+/* Telas estreitas: a barra ocupa a largura até o botão de pause */
+@media (width <= 760px) {
+  .hud-strip {
+    left: 10px;
+    right: calc(var(--chip-h) + 20px);
+    translate: 0 -50%;
+  }
+
+  .hud-seg { padding: 0 10px; }
+
+  .hud-sector {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+
+    .hud-value { font-size: 1.05rem; }
+  }
+
+  .hud-goal { flex: 1; width: auto; }
+  .hud-cell { min-width: 0; }
+  .hud-cell .hud-value { font-size: 0.85rem; }
+  .hud-label { font-size: 0.5rem; letter-spacing: 0.12em; }
+}
+
+@media (width <= 400px) {
+  .hud-goal .hud-label { display: none; } /* sobra só "7 / 12" + barra */
 }
 
 
 /* ========== Efeitos ativos (HUD) ========== */
 
 /*
-  Estrutura esperada (montada pelo JS dentro de #hud):
+  Estrutura (montada pelo JS em #effectsBar):
 
-  <div class="effects-bar">
-    <div class="effect-chip" data-effect="quickShot" style="--progress: 0.6">
-      <span class="effect-chip__name">Tiro rápido</span>
-      <span class="effect-chip__time">5s</span>
-      <span class="effect-chip__bar"></span>
-    </div>
+  <div class="effect-badge" data-effect="quickShot" style="--progress: 0.6" title="Tiro rápido">
+    <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+    <b class="effect-badge__time">5s</b>
   </div>
 
-  Classes de estado: .is-ending (últimos segundos, pisca)
-  Aviso grande no centro: <div class="effect-toast" data-effect="bleve">BLEVE!</div>
+  Classe de estado: .is-ending (últimos segundos)
 */
 
 .effects-bar {
   position: absolute;
-  top: calc(var(--arena-top, 78px) + 12px);
-  left: clamp(16px, 2.4vw, 28px);
-  z-index: 3;
+  top: calc(var(--arena-top) + 14px);
+  left: 50%;
+  translate: -50% 0;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   pointer-events: none;
 }
 
-.effect-chip {
+.effect-badge {
   /* Cor e ícone vêm do [data-effect] abaixo */
   --effect-color: var(--cyan);
   --effect-icon: none;
   --progress: 1;
 
-  position: relative;
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  column-gap: 8px;
-  min-width: 158px;
-  padding: 6px 10px 9px 7px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--effect-color) 45%, transparent);
-  border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--effect-color) 16%, rgb(8 15 48 / 0.88)), rgb(8 15 48 / 0.8));
-  box-shadow: 0 0 14px color-mix(in srgb, var(--effect-color) 22%, transparent), var(--shadow-sm);
+  gap: 4px;
   animation: effectIn 0.35s var(--ease-back) both;
 
-  /* Ícone */
-  &::before {
-    content: "";
-    width: 24px;
-    height: 24px;
-    background: var(--effect-icon) center / contain no-repeat;
-    rotate: var(--effect-icon-rotate, 0deg);
-    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--effect-color) 70%, transparent));
-  }
-
   &.is-ending { animation: effectBlink 0.5s ease-in-out infinite alternate; }
-
-  @media (width <= 640px) {
-    min-width: 0;
-    grid-template-columns: 20px auto;
-    padding: 5px 8px 8px 6px;
-
-    &::before { width: 20px; height: 20px; }
-    .effect-chip__name { display: none; }
-  }
 }
 
-.effect-chip__name {
-  overflow: hidden;
-  color: var(--text);
-  font-size: 0.66rem;
-  letter-spacing: 0.1em;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
+/* Anel = tempo restante (conic-gradient controlado por --progress) */
+.effect-badge__ring {
+  display: block;
+  width: 44px;
+  height: 44px;
+  padding: 3px;
+  border-radius: 50%;
+  background: conic-gradient(var(--effect-color) calc(var(--progress) * 360deg), rgb(255 255 255 / 0.08) 0);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--effect-color) 45%, transparent));
 }
 
-.effect-chip__time {
+.effect-badge__icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background:
+    var(--effect-icon) center / 64% no-repeat,
+    radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--effect-color) 22%, #0b1233), #070b22);
+}
+
+/* Ícones que precisam girar (ex.: seta do perfurante) */
+[data-effect="piercingShot"] .effect-badge__icon { rotate: -90deg; }
+
+.effect-badge__time {
   color: var(--effect-color);
   font-family: var(--font-display);
-  font-size: 0.78rem;
+  font-size: 0.66rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-/* Barra de tempo restante: preenchida por --progress (1 -> 0) */
-.effect-chip__bar {
-  position: absolute;
-  inset: auto 0 0;
-  height: 3px;
-  background: rgb(255 255 255 / 0.08);
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    scale: var(--progress) 1;
-    transform-origin: left;
-    background: var(--effect-color);
-    box-shadow: 0 0 8px var(--effect-color);
-  }
+@media (width <= 640px) {
+  .effect-badge__ring { width: 36px; height: 36px; padding: 2.5px; }
+  .effect-badge__time { font-size: 0.58rem; }
 }
 
 /* Aviso grande no centro (efeitos instantâneos: BLEVE, Incinerate, Freeze...) */
@@ -1147,8 +1177,9 @@
 [data-effect="quickShot"] { --effect-color: var(--cyan); --effect-icon: url("assets/icons/cadence.png"); }
 [data-effect="speedBoost"] { --effect-color: var(--success); --effect-icon: url("assets/ships/ship_1.png"); }
 [data-effect="damageBoost"] { --effect-color: var(--danger); --effect-icon: url("assets/icons/damage.png"); }
-[data-effect="piercingShot"] { --effect-color: #bd86ff; --effect-icon: url("assets/icons/arrow_right.png"); --effect-icon-rotate: -90deg; }
+[data-effect="piercingShot"] { --effect-color: #bd86ff; --effect-icon: url("assets/icons/arrow_right.png"); }
 [data-effect="invulnerability"] { --effect-color: var(--gold); --effect-icon: url("assets/icons/resistance.png"); }
+[data-effect="electricShot"] { --effect-color: #ffe66d; --effect-icon: url("assets/asteroids/special/electric.png"); }
 
 /* ========== Modais ========== */
 
@@ -1433,16 +1464,9 @@
   .result-grid > div { align-items: center; }
 }
 
+/* Game over e nível concluído usam o mesmo layout (setor + progresso + cards) */
+#gameover,
 #levelCompleted {
-  --accent: var(--success);
-
-  .result-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .btn--primary { flex-basis: 100%; }
-  #completeLevel { color: var(--accent); }
-}
-
-#gameover {
-  --accent: var(--danger);
   --modal-w: 440px;
 
   .modal-content { gap: 12px; }
@@ -1452,6 +1476,60 @@
   &[open] .go-sector { animation-delay: 0.15s; }
   &[open] .go-card--score { animation-delay: 0.25s; }
   &[open] .go-card--coins { animation-delay: 0.32s; }
+}
+
+#gameover { --accent: var(--danger); }
+
+#levelCompleted {
+  --accent: var(--success);
+
+  /* Troféu com brilho dourado no lugar da caveira vermelha */
+  .result-hero {
+    filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.45)) drop-shadow(0 0 22px rgb(255 210 103 / 0.55));
+  }
+
+  /* Barra cheia em verde de vitória */
+  .go-track > span {
+    background: linear-gradient(90deg, var(--cyan-strong), var(--success));
+  }
+
+  /* "Jogar próximo setor" ocupa a linha inteira */
+  .modal-footer .btn--primary { flex-basis: 100%; }
+}
+
+/* Tempo de missão abaixo do título */
+.result-sub {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+
+  strong {
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Selo de recorde no card de pontuação */
+.record-badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border: 1px solid rgb(255 210 103 / 0.5);
+  border-radius: 999px;
+  background: rgb(255 210 103 / 0.12);
+  color: var(--yellow);
+  font-size: 0.55rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  animation: recordPulse 1.4s ease-in-out infinite;
+
+  &[hidden] { display: none; }
 }
 
 /* Setor + barra de progresso */
@@ -1648,6 +1726,56 @@
 
 .guide-section:has(+ .boss-card) { color: #d4c4ff; }
 
+/* Contagem de derrotados (arquivo de ameaças) */
+.guide-total {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  strong {
+    color: var(--yellow);
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.guide-section-count {
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.04);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.guide-kills {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(115 240 190 / 0.1);
+  color: var(--success);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  &.is-zero {
+    background: rgb(255 255 255 / 0.05);
+    color: var(--muted);
+  }
+}
+
 .guide-card {
   display: flex;
   align-items: center;
@@ -1734,6 +1862,11 @@
   30% { scale: 1; }
   75% { opacity: 1; }
   100% { opacity: 0; translate: -50% -24px; }
+}
+
+@keyframes recordPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(255 210 103 / 0); }
+  50% { box-shadow: 0 0 12px 1px rgb(255 210 103 / 0.45); }
 }
 
 @keyframes heroDrop {
