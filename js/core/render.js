@@ -130,18 +130,29 @@ class SpriteCache {
 }
 
 /**
- * Contorno com brilho barato, no lugar de shadowBlur: uma passada larga e transparente
- * por baixo e a passada normal por cima. Usa o caminho (path) atual do ctx.
+ * Contorno com brilho barato, no lugar de shadowBlur: passadas largas e transparentes por baixo
+ * e a passada normal por cima. Usa o caminho (path) atual do ctx.
  * @param {string} color cor do contorno
- * @param {number} width espessura do traço
- * @param {{ glow?: number, glowAlpha?: number }} [options] espessura e opacidade do brilho
+ * @param {number} width espessura do contorno
+ * @param {{ glow?: number, glowAlpha?: number, soft?: boolean }} [options]
+ *   glow: largura total do brilho | glowAlpha: opacidade dele |
+ *   soft: brilho em duas camadas (borda esfumada, parecida com o shadowBlur original)
  */
-function glowStroke(color, width, { glow = width * 3, glowAlpha = 0.3 } = {}) {
+function glowStroke(color, width, { glow = width * 3, glowAlpha = 0.3, soft = false } = {}) {
   ctx.strokeStyle = color;
   const alpha = ctx.globalAlpha;
-  ctx.globalAlpha = alpha * glowAlpha;
-  ctx.lineWidth = glow;
-  ctx.stroke();
+  if (soft) {
+    ctx.globalAlpha = alpha * glowAlpha * 0.45;
+    ctx.lineWidth = glow;
+    ctx.stroke();
+    ctx.globalAlpha = alpha * glowAlpha;
+    ctx.lineWidth = width + (glow - width) * 0.45;
+    ctx.stroke();
+  } else {
+    ctx.globalAlpha = alpha * glowAlpha;
+    ctx.lineWidth = glow;
+    ctx.stroke();
+  }
   ctx.globalAlpha = alpha;
   ctx.lineWidth = width;
   ctx.stroke();

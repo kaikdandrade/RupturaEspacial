@@ -39,6 +39,12 @@ class BossAsteroid extends Asteroid {
   /** Patrulha o topo da arena (Cibernético e Gravitacional) em vez de andar livre. */
   get patrols() { return false; }
 
+  /** Nome mostrado ao lado da vida (em português, de ASTEROID_INFO). */
+  get displayName() { return ASTEROID_INFO[this.type]?.name ?? ""; }
+
+  /** Cor do nome ao lado da vida. */
+  get nameColor() { return ASTEROID_INFO[this.type]?.color ?? "#fff"; }
+
   /** Velocidade do boss em relação aos asteroides do setor. */
   get speedFactor() { return 0.86; }
 
@@ -52,12 +58,15 @@ class BossAsteroid extends Asteroid {
     else super.updateMovement(dt);
   }
 
-  /** Vai e volta na horizontal, numa linha logo abaixo do topo da arena. */
+  /**
+   * Vai e volta na horizontal, numa linha logo abaixo do topo da arena, deixando espaço
+   * acima para o nome e a barra de vida (drawHealth) não ficarem atrás do HUD.
+   */
   patrolTop(dt) {
     const { w } = viewport();
     const left = 10 + this.radius + 6;
     const right = Math.max(left, w - 10 - this.radius - 6);
-    const lineY = ARENA_TOP + this.radius + px(14);
+    const lineY = ARENA_TOP + this.radius + px(44);
     const speed = this.speed * 0.6;
     this.patrolDir ??= Math.random() < 0.5 ? -1 : 1;
 

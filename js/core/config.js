@@ -26,10 +26,13 @@ const LAUNCH_TIME = 2;
 const ARENA_TOP = 82;
 
 /**
- * Tela de referência da escala do mundo (ver SCALE em utils.js): nessa tela tudo tem o tamanho
- * "original". Telas menores encolhem as entidades (até min) e maiores aumentam (até max).
+ * Referência da escala do mundo (ver worldScale em utils.js). O mundo visível sempre tem
+ * `h` unidades de altura em telas deitadas (PC, notebook) e pelo menos `narrowW` de largura em
+ * telas em pé (celular, tablet). Com isso os objetos ocupam a mesma fração da tela em qualquer
+ * aparelho, em vez de encolherem no celular. min/max: limites da escala.
+ * `w` é a largura do mundo de referência, usada para medir a densidade da arena.
  */
-const WORLD_REF = { w: 1280, h: 900, min: 0.5, max: 1.3 };
+const WORLD_REF = { w: 1280, h: 900, narrowW: 560, min: 0.55, max: 1.3 };
 
 // ============================================================
 // ASTEROIDES E BOSSES
@@ -43,7 +46,7 @@ const SPECIAL_WEIGHTS = { volcanic: 1, frozen: 1, mystic: 1, electric: 1, golden
 
 /**
  * Nome e cor de cada tipo PARA O JOGADOR (o "type" em inglês é só do código).
- * - category: common | special | boss (usado no arquivo de ameaças)
+ * - category: common | special | boss (usado no glossário, aba Ameaças)
  * - color: cor de textos e cards
  * - dust: cor (RGB) da poeira quando é destruído
  */
@@ -225,8 +228,11 @@ const BALANCE = {
   bossArena: {
     // Luta longa (armadura): a arena ajuda com asteroides e cards para quebrar a defesa
     resistance: { interval: [3.5, 5], first: 2, cap: 3, capPerLevels: 25, special: 0.45 },
-    // A arena gera e o Gravitacional ROUBA: usa como escudo em órbita e arremessa na nave
-    gravity: { interval: [1.6, 2.6], first: 0.8, cap: 8, capPerLevels: 15, special: 0.12 },
+    // A arena gera e o Gravitacional ROUBA: usa como escudo em órbita e arremessa na nave.
+    // Ele depende disso: cap conta só os asteroides SOLTOS (os presos na órbita ou arremessados
+    // não ocupam vaga), cada leva manda `batch` de uma vez e `nearBoss` faz eles nascerem na
+    // faixa onde o boss está (a até nearBoss px dele na horizontal), para ele conseguir puxar.
+    gravity: { interval: [1, 1.6], first: 0.5, batch: 2, cap: 4, capPerLevels: 20, special: 0.12, nearBoss: 220 },
     // Já são difíceis por si: só um especial de vez em quando
     thorny: { interval: [11, 15], first: 7, cap: 2, onlySpecials: true },
     cyber: { interval: [10, 14], first: 6, cap: 2, onlySpecials: true },

@@ -13,6 +13,7 @@
 player.on("death", () => {
   if (state.mode === "gameover") return;
   state.mode = "gameover";
+  music.jingle("lose");
   finishRun(false);
   updateGameOverUI();
   showModal("gameover");
@@ -71,7 +72,7 @@ function resize() {
 
   VIEW.w = rect.width;
   VIEW.h = rect.height;
-  SCALE = clamp(Math.min(rect.width / WORLD_REF.w, rect.height / WORLD_REF.h), WORLD_REF.min, WORLD_REF.max) || 1;
+  SCALE = worldScale(rect.width, rect.height);
   if (dpr !== RENDER_DPR) {
     RENDER_DPR = dpr;
     SpriteCache.clear();
@@ -133,7 +134,9 @@ function startEncounter() {
 function winLevel() {
   if (state.mode === "complete") return;
   state.mode = "complete";
-  updateCompletedUI(finishRun(true));
+  const result = finishRun(true);
+  music.jingle(result.newRecord ? "record" : "win");
+  updateCompletedUI(result);
   showModal("levelCompleted");
 }
 
@@ -191,12 +194,26 @@ function changeSelectorShip(delta) {
 
 window.addEventListener("resize", resize);
 window.addEventListener("blur", pauseGame);
+// Celular: trocar de app ou bloquear a tela pausa a partida
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) pauseGame();
+});
 document.addEventListener("keyup", (event) => {
   if (event.key !== "Escape") return;
+  // Esc com o glossário aberto só fecha o glossário (o navegador já fechou no keydown)
+  if (escClosedGlossary) {
+    escClosedGlossary = false;
+    return;
+  }
   if (state.mode === "playing") pauseGame();
   else resumeGame();
   event.preventDefault();
 });
+
+// Esc fecha o glossário no keydown (comportamento do <dialog>): marca para o keyup não
+// tratar o mesmo Esc como "continuar o jogo"
+let escClosedGlossary = false;
+glossary.addEventListener("cancel", () => (escClosedGlossary = true));
 
 // O #ship-button fica dentro do #play-ship-button: nave liberada -> joga; bloqueada -> compra
 playShipButton.addEventListener("click", () => {
@@ -213,10 +230,8 @@ nextShipButton.addEventListener("click", () => changeSelectorShip(1));
 damageButton.addEventListener("click", () => buyUpgrade("damage"));
 fireRateButton.addEventListener("click", () => buyUpgrade("fireRate"));
 resistanceButton.addEventListener("click", () => buyUpgrade("resistance"));
-helpButton.addEventListener("click", () => {
-  updateThreatArchive();
-  showModal("help");
-});
+helpButton.addEventListener("click", () => openGlossary("threats"));
+$("pauseGlossaryButton").addEventListener("click", () => openGlossary("settings"));
 
 buttonCloseModals.forEach((button) => button.addEventListener("click", () => button.closest("dialog")?.close()));
 pauseButton.addEventListener("click", pauseGame);

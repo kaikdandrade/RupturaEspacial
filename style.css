@@ -39,9 +39,22 @@
   --font: "Chakra Petch", "Trebuchet MS", system-ui, sans-serif;
   --font-display: "Orbitron", var(--font);
 
+  /* Menor tamanho de texto permitido (rótulos pequenos usam max(var(--fs-min), ...)).
+     Em telas de toque e estreitas o mínimo sobe: no celular a tela fica mais longe dos olhos
+     em proporção ao tamanho e 8–9 px ficavam ilegíveis. */
+  --fs-min: 11px;
+
+  /* Altura do HUD = ARENA_TOP (config.js) - 4: o HUD ocupa exatamente a faixa entre o topo e o
+     tracejado da arena. Os controles de toque começam logo abaixo. */
+  --arena-top: 78px;
+
   @media (width <= 640px) {
     --chip-h: 44px;
     --gap: 0.75rem;
+  }
+
+  @media (pointer: coarse), (width <= 640px) {
+    --fs-min: 12px;
   }
 }
 
@@ -96,6 +109,8 @@
       box-shadow var(--t),
       filter var(--t),
       opacity var(--t);
+
+    touch-action: manipulation; /* sem atraso nem zoom de toque duplo */
 
     &:not(:disabled):active { scale: 0.96; }
     &:disabled { cursor: not-allowed; }
@@ -164,7 +179,7 @@
 .stat,
 .result-grid > div {
   color: var(--muted);
-  font-size: clamp(0.55rem, 1.2vw, 0.62rem);
+  font-size: max(var(--fs-min), clamp(0.55rem, 1.2vw, 0.62rem));
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -316,6 +331,14 @@
 }
 
 
+/* Tablets (toque, tela larga): hangar e janelas um pouco maiores, senão o layout de PC fica
+   miúdo numa tela que é segurada nas mãos. O HUD não entra (a altura dele é a da arena). */
+@media (pointer: coarse) and (width >= 700px) {
+  #mainMenu,
+  .modal { zoom: 1.2; }
+}
+
+
 /* ========== Menu principal ========== */
 
 #mainMenu {
@@ -406,7 +429,7 @@
       min-height: 40px;
       padding-inline: 14px;
 
-      span { font-size: 0.6rem; }
+      span { font-size: max(var(--fs-min), 0.6rem); }
     }
   }
 }
@@ -415,6 +438,32 @@
   grid-area: actions;
   display: flex;
   gap: var(--gap-sm);
+}
+
+/* Ícone de som (alto-falante em SVG; com o som desligado aparece o "x" no lugar das ondas) */
+.sound-icon {
+  flex: none;
+  display: block;
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px rgb(112 235 255 / 0.5));
+
+  .sound-icon__body { fill: rgb(112 235 255 / 0.25); }
+  .sound-icon__mute { display: none; stroke: #ff6e88; }
+
+  &.is-muted {
+    stroke: var(--muted);
+    filter: none;
+
+    .sound-icon__body { fill: rgb(255 255 255 / 0.06); }
+    .sound-icon__waves { display: none; }
+    .sound-icon__mute { display: inline; }
+  }
 }
 
 /* Setor e nave */
@@ -451,7 +500,7 @@
   text-transform: uppercase;
 
   #level-value { color: var(--text); font-size: 1.1rem; }
-  strong { color: var(--cyan); font-size: 0.7rem; transition: color var(--t), text-shadow var(--t); }
+  strong { color: var(--cyan); font-size: max(var(--fs-min), 0.7rem); transition: color var(--t), text-shadow var(--t); }
 
   /* Cor do status do setor */
   [data-status="available"] { color: var(--cyan); text-shadow: 0 0 10px rgb(112 235 255 / 0.35); }
@@ -644,7 +693,7 @@
 
 .heading-subtitle {
   color: rgb(128 212 255 / 0.6);
-  font-size: 0.55rem;
+  font-size: max(var(--fs-min), 0.55rem);
   letter-spacing: 0.16em;
 }
 
@@ -679,7 +728,7 @@
 
   small {
     color: rgb(255 223 145 / 0.6);
-    font-size: 0.52rem;
+    font-size: max(var(--fs-min), 0.52rem);
     letter-spacing: 0.14em;
   }
 
@@ -778,7 +827,7 @@
   border-radius: 999px;
   background: rgb(255 255 255 / 0.05);
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: max(var(--fs-min), 0.7rem);
   white-space: nowrap;
 
   span { color: var(--cyan); }
@@ -798,7 +847,7 @@
 
   > span {
     color: rgb(180 230 255 / 0.75);
-    font-size: 0.7rem;
+    font-size: max(var(--fs-min), 0.7rem);
     letter-spacing: 0.14em;
   }
 }
@@ -848,7 +897,7 @@
     &::after {
       content: "NÍVEL MÁXIMO";
       color: var(--gold);
-      font-size: 0.7rem;
+      font-size: max(var(--fs-min), 0.7rem);
       letter-spacing: 0.14em;
     }
   }
@@ -891,7 +940,7 @@
     background: #0b1a44;
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.5);
     color: var(--text);
-    font-size: 0.58rem;
+    font-size: max(var(--fs-min), 0.58rem);
   }
 
   .upgrade-cost {
@@ -916,10 +965,6 @@
 /* ========== HUD ========== */
 
 #hud {
-  /* Mesmo valor do "y" da arena em drawArenaField() (game_loop.js): o HUD ocupa
-     exatamente a faixa entre o topo e o tracejado, com tudo centralizado nela. */
-  --arena-top: 78px;
-
   position: absolute;
   inset: 0 0 auto;
   z-index: 2;
@@ -964,7 +1009,7 @@
 
 .hud-label {
   color: var(--muted);
-  font-size: 0.58rem;
+  font-size: max(var(--fs-min), 0.58rem);
   letter-spacing: 0.16em;
   line-height: 1;
   text-transform: uppercase;
@@ -1063,11 +1108,119 @@
   .hud-goal { flex: 1; width: auto; }
   .hud-cell { min-width: 0; }
   .hud-cell .hud-value { font-size: 0.85rem; }
-  .hud-label { font-size: 0.5rem; letter-spacing: 0.12em; }
+  .hud-label { font-size: max(var(--fs-min), 0.5rem); letter-spacing: 0.12em; }
 }
 
 @media (width <= 400px) {
   .hud-goal .hud-label { display: none; } /* sobra só "7 / 12" + barra */
+  .hud-goal { min-width: 64px; }
+  .hud-seg { padding: 0 8px; }
+  .hud-label { letter-spacing: 0.04em; }
+}
+
+
+/* ========== Controles de toque ========== */
+
+/*
+  Joystick flutuante (metade esquerda) + botão de tiro e AUTO (canto direito).
+  Fica abaixo do HUD (top = --arena-top) para o botão de pause continuar livre.
+*/
+#touchControls {
+  --stick: 112px;   /* diâmetro da base: 2 × TouchControls.STICK_RADIUS */
+  --fire: 84px;
+  --edge: max(18px, env(safe-area-inset-bottom));
+
+  position: absolute;
+  inset: var(--arena-top) 0 0;
+  z-index: 3;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+
+  &[hidden] { display: none; }
+}
+
+.touch-stick {
+  position: absolute;
+  /* Posição de descanso (dica visual); ao tocar, o JS move o centro para baixo do dedo */
+  left: calc(var(--stick) / 2 + 22px);
+  top: calc(100% - var(--stick) / 2 - var(--edge));
+  width: var(--stick);
+  height: var(--stick);
+  translate: -50% -50%;
+  border: 2px solid rgb(112 235 255 / 0.28);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(112 235 255 / 0.08), rgb(112 235 255 / 0.02) 70%);
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity var(--t-fast);
+
+  &.is-active { opacity: 1; }
+}
+
+.touch-stick__knob {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border: 2px solid rgb(255 255 255 / 0.55);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgb(170 245 255 / 0.9), rgb(41 200 242 / 0.55));
+  box-shadow: 0 0 16px rgb(112 235 255 / 0.55);
+}
+
+.touch-fire {
+  position: absolute;
+  right: 22px;
+  bottom: var(--edge);
+  display: grid;
+  place-items: center;
+  width: var(--fire);
+  height: var(--fire);
+  border: 2px solid rgb(255 110 136 / 0.6);
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, rgb(255 140 160 / 0.35), rgb(120 20 50 / 0.35));
+  box-shadow: 0 0 18px rgb(255 110 136 / 0.35);
+  opacity: 0.8;
+  touch-action: none;
+
+  img { width: 58%; pointer-events: none; }
+
+  &.is-pressed {
+    opacity: 1;
+    scale: 0.92;
+    box-shadow: 0 0 26px rgb(255 110 136 / 0.7);
+  }
+}
+
+.touch-auto {
+  position: absolute;
+  right: calc(22px + var(--fire) / 2);
+  bottom: calc(var(--edge) + var(--fire) + 14px);
+  translate: 50% 0;
+  padding: 7px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgb(6 10 34 / 0.7);
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  touch-action: manipulation;
+
+  &.is-on {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 12px rgb(112 235 255 / 0.4);
+  }
+}
+
+/* Telas baixas (celular deitado): controles um pouco menores */
+@media (height <= 480px) {
+  #touchControls { --stick: 96px; --fire: 70px; --edge: 12px; }
 }
 
 
@@ -1136,14 +1289,14 @@
 .effect-badge__time {
   color: var(--effect-color);
   font-family: var(--font-display);
-  font-size: 0.66rem;
+  font-size: max(var(--fs-min), 0.66rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 @media (width <= 640px) {
   .effect-badge__ring { width: 36px; height: 36px; padding: 2.5px; }
-  .effect-badge__time { font-size: 0.58rem; }
+  .effect-badge__time { font-size: max(var(--fs-min), 0.58rem); }
 }
 
 /* Aviso grande no centro (efeitos instantâneos: BLEVE, Incinerate, Freeze...) */
@@ -1171,8 +1324,8 @@
 [data-effect="frozen"] { --effect-color: #78e7ff; --effect-icon: url("assets/asteroids/special/frozen.png"); }
 [data-effect="freeze"] { --effect-color: #c4f6ff; --effect-icon: url("assets/asteroids/special/frozen.png"); }
 [data-effect="flame"] { --effect-color: #ff8c5c; --effect-icon: url("assets/asteroids/special/volcanic.png"); }
-[data-effect="incinerate"] { --effect-color: #ff6a3d; }
-[data-effect="bleve"] { --effect-color: #ffb347; }
+[data-effect="incinerate"] { --effect-color: #ff6a3d; --effect-icon: url("assets/icons/damage.png"); }
+[data-effect="bleve"] { --effect-color: #ffb347; --effect-icon: url("assets/icons/sparks.png"); }
 [data-effect="scoreBonus"] { --effect-color: var(--yellow); --effect-icon: url("assets/icons/trophy.png"); }
 [data-effect="quickShot"] { --effect-color: var(--cyan); --effect-icon: url("assets/icons/cadence.png"); }
 [data-effect="speedBoost"] { --effect-color: var(--success); --effect-icon: url("assets/ships/ship_1.png"); }
@@ -1343,7 +1496,6 @@
   gap: 10px;
 }
 
-.stat,
 .result-grid > div {
   display: flex;
   flex-direction: column;
@@ -1363,6 +1515,74 @@
 }
 
 /* Pause */
+
+/* Cards do resumo: ícone à esquerda, rótulo e valor à direita */
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  padding: 12px 14px;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  strong {
+    color: var(--accent);
+    font-size: 1.25rem;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (width <= 480px) {
+  .stat { gap: 10px; padding-inline: 12px; }
+  .stat > div > span { letter-spacing: 0.06em; }
+}
+
+.stat-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.4));
+}
+
+/* Relógio (não há PNG): desenhado em SVG no mesmo estilo neon */
+.stat-icon--svg {
+  padding: 4px;
+  fill: rgb(112 235 255 / 0.12);
+  stroke: var(--cyan);
+  stroke-width: 2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgb(112 235 255 / 0.5));
+}
+
+/* Atalho para o glossário no cabeçalho da pausa */
+.glossary-link {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+
+  img { width: 28px; height: 28px; object-fit: contain; }
+
+  &:not(:disabled):hover { border-color: var(--cyan); color: var(--cyan); }
+}
 
 .pause-section {
   display: flex;
@@ -1385,6 +1605,176 @@
       background: linear-gradient(90deg, var(--line-strong), transparent);
     }
   }
+}
+
+/* ---------- Glossário: aba Áudio ---------- */
+
+
+.volume-row {
+  display: grid;
+  margin-bottom: 8px;
+  grid-template-columns: 5.5rem 1fr 4.2rem;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+
+  .switch { justify-self: start; }
+}
+
+.volume-row__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e4f3ff;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.volume-row__value {
+  justify-self: end;
+  color: var(--cyan);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  Slider personalizado: trilho escuro com a parte cheia em degradê ciano (--value é
+  atualizado pelo JS em renderRange) e um botão redondo brilhante.
+*/
+.range {
+  --value: 50%;
+  --track-h: 8px;
+  --thumb: 22px;
+
+  width: 100%;
+  height: 32px; /* área de toque confortável no celular */
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+
+  &::-webkit-slider-runnable-track {
+    height: var(--track-h);
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background:
+      linear-gradient(90deg, #2a8cff, var(--cyan)) 0 / var(--value) 100% no-repeat,
+      rgb(6 10 34 / 0.85);
+    box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.5);
+  }
+  &::-moz-range-track {
+    height: var(--track-h);
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: rgb(6 10 34 / 0.85);
+  }
+  &::-moz-range-progress {
+    height: var(--track-h);
+    border-radius: 999px;
+    background: linear-gradient(90deg, #2a8cff, var(--cyan));
+  }
+
+  &::-webkit-slider-thumb {
+    width: var(--thumb);
+    height: var(--thumb);
+    margin-top: calc((var(--track-h) - var(--thumb)) / 2 - 1px);
+    border: 3px solid #e9fbff;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 0 4px rgb(112 235 255 / 0.18), 0 0 14px rgb(112 235 255 / 0.7);
+    transition: scale var(--t-fast);
+    -webkit-appearance: none;
+  }
+  &::-moz-range-thumb {
+    width: var(--thumb);
+    height: var(--thumb);
+    border: 3px solid #e9fbff;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 0 4px rgb(112 235 255 / 0.18), 0 0 14px rgb(112 235 255 / 0.7);
+  }
+
+  &:active::-webkit-slider-thumb { scale: 1.15; }
+  &:focus-visible { outline: none; }
+  &:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 5px rgb(112 235 255 / 0.35), 0 0 16px rgb(112 235 255 / 0.8); }
+}
+
+/* Interruptor liga/desliga (som) */
+.switch {
+  position: relative;
+  width: 54px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgb(6 10 34 / 0.85);
+  transition: background-color var(--t), border-color var(--t);
+
+  .switch__knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: translate var(--t) var(--ease-back), background-color var(--t), box-shadow var(--t);
+  }
+
+  &[aria-checked="true"] {
+    border-color: var(--cyan);
+    background: rgb(41 140 255 / 0.35);
+
+    .switch__knob {
+      translate: 24px 0;
+      background: var(--cyan);
+      box-shadow: 0 0 12px rgb(112 235 255 / 0.7);
+    }
+  }
+
+  &:not(:disabled):hover { translate: none; }
+}
+
+.glossary-note {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+@media (width <= 480px) {
+  .volume-row:not(.volume-row--switch) {
+    grid-template-columns: 1fr auto;
+    gap: 6px 12px;
+
+    .range { grid-column: 1 / -1; grid-row: 2; }
+  }
+
+  .volume-row--switch { grid-template-columns: 1fr auto auto; }
+}
+
+/* Instruções de controle: toque no celular/tablet, teclado no PC (classe posta pelo touch.js) */
+.touch-only { display: none !important; }
+html.is-touch {
+  .touch-only { display: flex !important; }
+  .keys-only { display: none !important; }
+}
+
+.control-hint {
+  color: var(--text);
+  font-size: 0.85rem;
+  text-align: right;
+
+  b { color: var(--cyan); }
 }
 
 .control-row {
@@ -1443,7 +1833,7 @@
 
 .key-separator {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: max(var(--fs-min), 0.7rem);
 }
 
 /* Resultados */
@@ -1513,21 +1903,45 @@
   }
 }
 
-/* Selo de recorde no card de pontuação */
+/*
+  Selo de recorde: etiqueta de uma linha presa na borda de cima do card de pontuação
+  (fora do fluxo, então não empurra nem espreme o número). Com recorde o card fica dourado.
+*/
+.go-card--score {
+  position: relative;
+
+  &:has(.record-badge:not([hidden])) {
+    border-color: rgb(255 210 103 / 0.55);
+    background:
+      radial-gradient(120% 90% at 20% 0%, rgb(255 210 103 / 0.12), transparent 60%),
+      var(--card);
+    animation: recordPulse 1.8s ease-in-out infinite;
+  }
+}
+
 .record-badge {
-  display: inline-block;
-  margin-top: 6px;
-  padding: 2px 8px;
-  border: 1px solid rgb(255 210 103 / 0.5);
+  position: absolute;
+  top: 0;
+  left: 50%;
+  translate: -50% -50%;
+  padding: 3px 10px;
+  border: 1px solid rgb(255 210 103 / 0.7);
   border-radius: 999px;
-  background: rgb(255 210 103 / 0.12);
+  background: linear-gradient(180deg, #3a2c0c, #1c1606);
   color: var(--yellow);
-  font-size: 0.55rem;
+  font-size: max(var(--fs-min), 0.6rem);
   font-style: normal;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
   text-transform: uppercase;
-  animation: recordPulse 1.4s ease-in-out infinite;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.45), 0 0 10px rgb(255 210 103 / 0.25);
+
+  @media (width <= 480px) {
+    padding: 2px 8px;
+    letter-spacing: 0.05em;
+  }
 
   &[hidden] { display: none; }
 }
@@ -1558,7 +1972,7 @@
   small {
     margin-bottom: -6px;
     color: var(--muted);
-    font-size: 0.5rem;
+    font-size: max(var(--fs-min), 0.5rem);
     letter-spacing: 0.16em;
     text-transform: uppercase;
   }
@@ -1579,7 +1993,7 @@
   align-items: baseline;
   gap: 8px;
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: max(var(--fs-min), 0.62rem);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 
@@ -1616,6 +2030,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  padding-top: 8px; /* espaço para o selo de recorde, que fica metade acima do card */
 }
 
 .go-card {
@@ -1642,7 +2057,7 @@
   span {
     display: block;
     color: var(--muted);
-    font-size: 0.6rem;
+    font-size: max(var(--fs-min), 0.6rem);
     letter-spacing: 0.14em;
     text-transform: uppercase;
   }
@@ -1685,6 +2100,97 @@
 
 /* Ajuda */
 
+/* ---------- Glossário: abas ---------- */
+
+.glossary-tabs {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 10px var(--pad) 0;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.glossary-tab {
+  flex: none;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color var(--t), background-color var(--t);
+
+  &:not(:disabled):hover { translate: none; color: var(--text); }
+
+  /* Celular: as abas dividem a largura (sem rolar e cortar a primeira) */
+  @media (width <= 520px) {
+    flex: 1 1 auto;
+    padding: 10px 4px;
+    font-size: max(var(--fs-min), 0.7rem);
+    letter-spacing: 0.04em;
+  }
+
+  &[aria-selected="true"] {
+    position: relative;
+    border-color: var(--line);
+    background: var(--card);
+    color: var(--cyan);
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: auto 12px -1px;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+    }
+  }
+}
+
+.glossary-panel[hidden] { display: none; }
+
+/* Aba "Controles e áudio": duas seções empilhadas, com rolagem */
+.glossary-settings {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--pad);
+  overflow-y: auto;
+
+  .guide-section { margin-block: 18px 10px; }
+  .guide-section:first-child { margin-top: 0; }
+}
+
+/* Cards de efeito: o mesmo ícone redondo do HUD (cor e imagem vêm do [data-effect]) */
+.effect-card {
+  --progress: 1;
+
+  .effect-badge__ring {
+    flex: none;
+    width: 58px;
+    height: 58px;
+  }
+
+  &.guide-card h4 { color: var(--effect-color); }
+}
+
+.guide-note {
+  color: var(--muted);
+  font-size: max(var(--fs-min), 0.62rem);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: none;
+}
+
 #help {
   --modal-w: 920px;
   max-height: min(90dvh, 860px);
@@ -1726,14 +2232,15 @@
 
 .guide-section:has(+ .boss-card) { color: #d4c4ff; }
 
-/* Contagem de derrotados (arquivo de ameaças) */
+/* Contagem de derrotados (glossário, aba Ameaças) */
 .guide-total {
+  grid-column: 1 / -1;
   display: inline-flex;
   align-items: baseline;
   gap: 8px;
   margin-top: 2px;
   color: var(--muted);
-  font-size: 0.66rem;
+  font-size: max(var(--fs-min), 0.66rem);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 
@@ -1753,7 +2260,7 @@
   background: rgb(255 255 255 / 0.04);
   color: var(--text);
   font-family: var(--font-display);
-  font-size: 0.62rem;
+  font-size: max(var(--fs-min), 0.62rem);
   letter-spacing: 0.06em;
   font-variant-numeric: tabular-nums;
 }
@@ -1765,7 +2272,7 @@
   border-radius: 999px;
   background: rgb(115 240 190 / 0.1);
   color: var(--success);
-  font-size: 0.6rem;
+  font-size: max(var(--fs-min), 0.6rem);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;

@@ -20,7 +20,7 @@
     <section id="mainMenu" class="screen active" aria-label="Tela principal">
       <header class="topbar">
         <div class="brand" aria-label="Ruptura Espacial">
-          <img src="assets/favicon.ico" alt="Ícone do jogo" class="brand-img" />
+          <img src="assets/icons/logo.png" alt="" class="brand-img" />
           <h1 class="title">RUPTURA <span class="cyan">ESPACIAL</span></h1>
         </div>
 
@@ -201,6 +201,17 @@
       <!-- Efeitos ativos (preenchido pelo JS: updateEffectsHud) -->
       <div id="effectsBar" class="effects-bar"></div>
     </section>
+
+    <!-- Controles de toque (js/ui/touch.js): só aparecem na partida, em telas de toque -->
+    <div id="touchControls" hidden>
+      <div id="touchStick" class="touch-stick" aria-hidden="true">
+        <span id="touchKnob" class="touch-stick__knob"></span>
+      </div>
+      <button id="touchAuto" class="touch-auto" type="button" aria-pressed="false" aria-label="Tiro automático">AUTO</button>
+      <button id="touchFire" class="touch-fire" type="button" aria-label="Atirar">
+        <img src="assets/icons/damage.png" alt="" />
+      </button>
+    </div>
   </main>
 
   <!-- MODAIS -->
@@ -209,6 +220,10 @@
     <dialog id="pause" class="modal" aria-label="Jogo pausado">
       <header class="modal-header">
         <h2 class="title">Jogo Pausado</h2>
+        <button id="pauseGlossaryButton" class="glossary-link" type="button" title="Glossário: controles, áudio, efeitos e ameaças">
+          <img src="assets/icons/help.png" alt="" />
+          <span>Glossário</span>
+        </button>
       </header>
 
       <div class="modal-content">
@@ -217,59 +232,35 @@
 
           <div class="pause-stats">
             <div class="stat">
-              <span>Pontuação</span>
-              <strong id="pauseScore">0</strong>
-            </div>
-
-            <div class="stat">
-              <span id="pauseKillsLabel">Asteroides destruídos</span>
-              <strong id="pauseKills">0</strong>
-            </div>
-
-            <div class="stat">
-              <span>Tempo</span>
-              <strong id="pauseTime">00:00</strong>
-            </div>
-
-            <div class="stat">
-              <span>Resistência da Nave</span>
-              <strong id="pauseResistance">0</strong>
-            </div>
-          </div>
-        </section>
-
-        <section class="pause-section">
-          <h3>Controles</h3>
-
-          <div class="control-row">
-            <span>Movimentar</span>
-
-            <div class="control-keys">
-              <div class="key-cluster key-cluster--wasd">
-                <kbd class="key key--w">W</kbd>
-                <kbd class="key key--a">A</kbd>
-                <kbd class="key key--s">S</kbd>
-                <kbd class="key key--d">D</kbd>
-              </div>
-
-              <span class="key-separator">ou</span>
-
-              <div class="key-cluster key-cluster--arrows">
-                <kbd class="key key--up">↑</kbd>
-                <kbd class="key key--left">←</kbd>
-                <kbd class="key key--down">↓</kbd>
-                <kbd class="key key--right">→</kbd>
+              <img class="stat-icon" src="assets/icons/trophy.png" alt="" />
+              <div>
+                <span>Pontuação</span>
+                <strong id="pauseScore">0</strong>
               </div>
             </div>
-          </div>
 
-          <div class="control-row">
-            <span>Atirar</span>
+            <div class="stat">
+              <img class="stat-icon" src="assets/icons/skull.png" alt="" />
+              <div>
+                <span id="pauseKillsLabel">Asteroides destruídos</span>
+                <strong id="pauseKills">0</strong>
+              </div>
+            </div>
 
-            <div class="control-keys">
-              <kbd class="key key--wide">ESPAÇO</kbd>
-              <span class="key-separator">ou</span>
-              <kbd class="key key--wide">ENTER</kbd>
+            <div class="stat">
+              <svg class="stat-icon stat-icon--svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
+              <div>
+                <span>Tempo</span>
+                <strong id="pauseTime">00:00</strong>
+              </div>
+            </div>
+
+            <div class="stat">
+              <img class="stat-icon" src="assets/icons/resistance.png" alt="" />
+              <div>
+                <span>Resistência</span>
+                <strong id="pauseResistance">0</strong>
+              </div>
             </div>
           </div>
         </section>
@@ -367,19 +358,27 @@
     </dialog>
 
     <!-- Ajuda / Enciclopédia -->
-    <dialog id="help" class="modal">
+    <dialog id="help" class="modal" aria-label="Glossário">
       <header class="modal-header">
         <div>
-          <h2>Arquivo de ameaças</h2>
-          <p>Conheça os asteroides comuns, os especiais e as mecânicas exclusivas dos bosses.</p>
-          <p class="guide-total">Total derrotado <strong id="archiveTotal">0</strong></p>
+          <h2>Glossário</h2>
+          <p>Ameaças, efeitos, controles e áudio: tudo o que você precisa saber para sobreviver.</p>
         </div>
         <button type="button" aria-label="Fechar" class="close-modal" title="Fechar">
           <img src="assets/icons/x.png" alt="" />
         </button>
       </header>
 
-      <div class="asteroid-guide">
+      <!-- Abas (js/ui/interface.js: openGlossary / showGlossaryTab) -->
+      <nav class="glossary-tabs" role="tablist" aria-label="Seções do glossário">
+        <button class="glossary-tab" type="button" role="tab" data-tab="threats" aria-selected="true">Ameaças</button>
+        <button class="glossary-tab" type="button" role="tab" data-tab="effects" aria-selected="false">Efeitos</button>
+        <button class="glossary-tab" type="button" role="tab" data-tab="settings" aria-selected="false">Controles e áudio</button>
+      </nav>
+
+      <!-- Ameaças: asteroides e bosses, com o total derrotado de cada um -->
+      <div class="glossary-panel asteroid-guide" data-panel="threats" role="tabpanel">
+        <p class="guide-total">Total derrotado <strong id="archiveTotal">0</strong></p>
         <h3 class="guide-section">Comuns <span class="guide-section-count" data-kills-category="common">0</span></h3>
         <article class="guide-card">
           <img src="assets/asteroids/common/asteroid_1.png" alt="Asteroide comum">
@@ -484,6 +483,182 @@
           </div>
         </article>
       </div>
+
+      <!-- Efeitos: o que cada card faz (valores de Effect.CONFIG em js/core/Effects.js) -->
+      <div class="glossary-panel asteroid-guide" data-panel="effects" role="tabpanel" hidden>
+        <h3 class="guide-section">Gelo e fogo</h3>
+        <article class="guide-card effect-card" data-effect="frozen">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>Lentidão</h4>
+            <p>Card do <strong>Glacial</strong>. Por 6 s os asteroides andam <strong>na metade da velocidade</strong>. Vulcânicos ficam ainda mais lentos e tomam dano do frio; bosses só desaceleram um pouco.</p>
+          </div>
+        </article>
+        <article class="guide-card effect-card" data-effect="freeze">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>Congelamento</h4>
+            <p>Pegue outro card de gelo com a Lentidão ativa: <strong>tudo congela</strong> por 4 s. Vulcânicos levam um choque de frio e bosses só ficam lentos. Perto do Gravitacional nada congela.</p>
+          </div>
+        </article>
+        <article class="guide-card effect-card" data-effect="flame">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>Chamas</h4>
+            <p>Card do <strong>Vulcânico</strong>. Por 6 s <strong>todos os asteroides queimam</strong> aos poucos. Os Glaciais tomam o dobro do dano do fogo.</p>
+          </div>
+        </article>
+        <article class="guide-card effect-card" data-effect="incinerate">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>Incinerar</h4>
+            <p>Pegue outro card de fogo com as Chamas ativas: <strong>explosão instantânea</strong> que fere todos os asteroides de uma vez.</p>
+          </div>
+        </article>
+        <article class="guide-card effect-card" data-effect="bleve">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>BLEVE</h4>
+            <p>Fogo e gelo juntos (um card de um com o outro ativo): <strong>a maior explosão do jogo</strong>, quase destrói tudo. Consome os dois efeitos.</p>
+          </div>
+        </article>
+
+        <h3 class="guide-section">Energia</h3>
+        <article class="guide-card effect-card" data-effect="electricShot">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>Tiro elétrico</h4>
+            <p>Card do <strong>Elétrico</strong>. Por 8 s cada tiro que acerta <strong>solta um raio que pula</strong> para até 3 asteroides próximos, mais fraco a cada pulo. Com gelo ativo, o raio pula mais longe.</p>
+          </div>
+        </article>
+
+        <h3 class="guide-section">Bônus do Místico <small class="guide-note">um deles ao acaso</small></h3>
+        <article class="guide-card effect-card" data-effect="quickShot">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>Tiro rápido</h4>
+            <p>Por 8 s a nave <strong>atira bem mais rápido</strong>.</p>
+          </div>
+        </article>
+        <article class="guide-card effect-card" data-effect="damageBoost">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>Dano extra</h4>
+            <p>Por 8 s cada tiro causa <strong>50% a mais de dano</strong>.</p>
+          </div>
+        </article>
+        <article class="guide-card effect-card" data-effect="piercingShot">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>Perfurante</h4>
+            <p>Por 8 s os tiros <strong>atravessam asteroides</strong> e seguem acertando os de trás.</p>
+          </div>
+        </article>
+        <article class="guide-card effect-card" data-effect="speedBoost">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>Velocidade</h4>
+            <p>Por 8 s a nave <strong>se move 35% mais rápido</strong>.</p>
+          </div>
+        </article>
+        <article class="guide-card effect-card" data-effect="scoreBonus">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>Pontos extras</h4>
+            <p>Por 8 s tudo vale <strong>50% a mais de pontuação</strong>.</p>
+          </div>
+        </article>
+        <article class="guide-card effect-card" data-effect="invulnerability">
+          <span class="effect-badge__ring"><span class="effect-badge__icon"></span></span>
+          <div>
+            <h4>Invulnerável</h4>
+            <p>Por 5 s a nave <strong>não toma dano</strong> de nada.</p>
+          </div>
+        </article>
+      </div>
+
+      <!-- Controles e áudio: teclado no PC / toque no celular (html.is-touch) + volumes (SAVE.audio) -->
+      <div class="glossary-panel glossary-settings" data-panel="settings" role="tabpanel" hidden>
+        <h3 class="guide-section">Controles</h3>
+        <!-- Toque (celular/tablet): visível só com html.is-touch (js/ui/touch.js) -->
+        <div class="control-row touch-only">
+          <span>Movimentar</span>
+          <p class="control-hint">Arraste o dedo no lado esquerdo da tela</p>
+        </div>
+
+        <div class="control-row touch-only">
+          <span>Atirar</span>
+          <p class="control-hint">Segure o botão vermelho ou ligue o <b>AUTO</b></p>
+        </div>
+
+        <!-- Teclado (PC) -->
+        <div class="control-row keys-only">
+          <span>Movimentar</span>
+
+          <div class="control-keys">
+            <div class="key-cluster key-cluster--wasd">
+              <kbd class="key key--w">W</kbd>
+              <kbd class="key key--a">A</kbd>
+              <kbd class="key key--s">S</kbd>
+              <kbd class="key key--d">D</kbd>
+            </div>
+
+            <span class="key-separator">ou</span>
+
+            <div class="key-cluster key-cluster--arrows">
+              <kbd class="key key--up">↑</kbd>
+              <kbd class="key key--left">←</kbd>
+              <kbd class="key key--down">↓</kbd>
+              <kbd class="key key--right">→</kbd>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-row keys-only">
+          <span>Atirar</span>
+
+          <div class="control-keys">
+            <kbd class="key key--wide">ESPAÇO</kbd>
+            <span class="key-separator">ou</span>
+            <kbd class="key key--wide">ENTER</kbd>
+          </div>
+        </div>
+
+        <div class="control-row keys-only">
+          <span>Pausar</span>
+          <div class="control-keys"><kbd class="key key--wide">ESC</kbd></div>
+        </div>
+        <div class="control-row touch-only">
+          <span>Pausar</span>
+          <p class="control-hint">Botão de pause no canto superior direito</p>
+        </div>
+
+        <h3 class="guide-section">Áudio</h3>
+        <label class="volume-row">
+          <span class="volume-row__label">Música</span>
+          <input id="musicVolume" class="range" type="range" min="0" max="100" step="5" />
+          <output class="volume-row__value" for="musicVolume">70%</output>
+        </label>
+        <label class="volume-row">
+          <span class="volume-row__label">Efeitos</span>
+          <input id="sfxVolume" class="range" type="range" min="0" max="100" step="5" />
+          <output class="volume-row__value" for="sfxVolume">80%</output>
+        </label>
+        <div class="volume-row volume-row--switch">
+          <span class="volume-row__label">Som</span>
+          <button id="muteToggle" class="switch" type="button" role="switch" aria-checked="true">
+            <span class="switch__knob"></span>
+          </button>
+          <span class="volume-row__value">
+            <svg id="soundIcon" class="sound-icon" viewBox="0 0 24 24" role="img" aria-label="Som ligado">
+              <path class="sound-icon__body" d="M4 9h4l5-4v14l-5-4H4z" />
+              <path class="sound-icon__waves" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" />
+              <path class="sound-icon__mute" d="M16 9l6 6M22 9l-6 6" />
+            </svg>
+          </span>
+        </div>
+        <p class="glossary-note">O som começa depois do primeiro clique ou toque (regra dos navegadores).</p>
+      </div>
       <button class="btn back-button mobile-back" data-back type="button">← Voltar</button>
     </dialog>
   </aside>
@@ -495,6 +670,7 @@
   <script src="js/core/utils.js"></script>
   <script src="js/core/render.js"></script>
   <script src="js/core/Data.js"></script>
+  <script src="js/core/audio.js"></script>
   <script src="js/core/Collisions.js"></script>
   <script src="js/core/Effects.js"></script>
   <script src="js/core/Level.js"></script>
@@ -520,9 +696,11 @@
   <script src="js/game/fx.js"></script>
   <script src="js/game/progress.js"></script>
   <script src="js/game/spawner.js"></script>
+  <script src="js/game/music.js"></script>
   <script src="js/ui/interface.js"></script>
+  <script src="js/ui/touch.js"></script>
   <script src="js/main.js"></script>
   <script src="js/game_loop.js"></script>
 </body>
 
-</html>
+</html>

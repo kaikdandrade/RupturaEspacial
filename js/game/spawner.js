@@ -76,7 +76,7 @@ function spawnAsteroid({ helper = false, isPrimary = true, entryDelay = 0, x, y,
  */
 function spawnNormalBatch(requestedCount) {
   const plan = state.spawnPlan;
-  const freeSlots = Math.max(0, plan.activeCap - asteroids.length);
+  const freeSlots = Math.max(0, fitActiveCap(plan.activeCap) - asteroids.length);
   const remaining = Math.max(0, plan.total - plan.spawned);
   const count = Math.min(requestedCount, freeSlots, remaining);
   for (let i = 0; i < count; i++) {
@@ -101,7 +101,7 @@ function updateNormalSpawner(dt) {
   plan.timer -= dt;
   if (plan.timer > 0) return;
 
-  const freeSlots = plan.activeCap - asteroids.length;
+  const freeSlots = fitActiveCap(plan.activeCap) - asteroids.length;
   if (freeSlots <= 0) {
     plan.timer = 0.35; // arena cheia: tenta de novo daqui a pouco
     return;
@@ -151,17 +151,26 @@ function bossArenaRules() {
 /** Máximo de asteroides da arena vivos ao mesmo tempo na luta atual. */
 function bossArenaCap(rules = bossArenaRules()) {
   const bonus = rules.capPerLevels ? Math.floor(level.number / rules.capPerLevels) : 0;
-  return rules.cap + bonus;
+  return fitActiveCap(rules.cap + bonus);
 }
 
-/** A arena do boss manda asteroides do topo (o boss em si não gera nada). */
+/**
+ * A arena do boss manda asteroides do topo (o boss em si não gera nada).
+ * Só contam na vaga os asteroides soltos: os presos na órbita do Gravitacional ou já
+ * arremessados por ele não impedem a arena de mandar mais.
+ */
 function spawnHelpers(count) {
   const rules = bossArenaRules();
-  const active = asteroids.filter((a) => a.helper && !a.dead).length;
+  const active = asteroids.filter((a) => a.helper && !a.dead && !a.orbitHost && !a.launched).length;
   const free = Math.max(0, bossArenaCap(rules) - active);
+  const { w } = viewport();
   for (let i = 0; i < Math.min(count, free); i++) {
     const type = rules.onlySpecials ? randomSpecialType() : randomTypeAsteroids(state.levelConfig, rules.special);
-    asteroids.push(spawnAsteroid({ helper: true, isPrimary: false, entryDelay: i * 0.15, type }));
+    // nearBoss: nasce na faixa horizontal do boss (o Gravitacional precisa alcançar para roubar)
+    const x = rules.nearBoss && state.boss
+      ? clamp(state.boss.x + px(random(-rules.nearBoss, rules.nearBoss)), px(50), w - px(50))
+      : undefined;
+    asteroids.push(spawnAsteroid({ helper: true, isPrimary: false, entryDelay: i * 0.15, type, x }));
   }
 }
 
@@ -172,5 +181,5 @@ function updateBossSummons(dt) {
   if (state.bossSummonTimer > 0) return;
   const [min, max] = bossArenaRules().interval;
   state.bossSummonTimer = random(min, max);
-  spawnHelpers(1);
+  spawnHelpers(bossArenaRules().batch ?? 1);
 }

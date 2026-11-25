@@ -86,6 +86,8 @@ function updatePlaying(dt) {
 function update(dt) {
   updateStars(dt);
   updateFx(dt);
+  touchControls.sync(); // mostra/esconde os controles de toque conforme o modo
+  syncMusic(dt);        // música certa para o modo atual
   switch (state.mode) {
     case "launching": // nave saindo do hangar: quando termina, a partida começa
       if (player.updateLaunch(dt)) startEncounter();

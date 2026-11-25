@@ -100,7 +100,7 @@ function drawFloatingTexts() {
   if (!floatingTexts.length) return;
   ctx.save();
   ctx.textAlign = "center";
-  ctx.font = `800 ${Math.round(15 * clamp(SCALE, 0.75, 1.2))}px Orbitron, sans-serif`;
+  ctx.font = `800 ${Math.round(15 * clamp(SCALE, 0.85, 1.2))}px Orbitron, sans-serif`;
   ctx.lineWidth = 4;
   ctx.strokeStyle = "rgba(5, 8, 23, .85)";
   for (const t of floatingTexts) {

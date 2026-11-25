@@ -3,6 +3,7 @@
 /**
  * @file A nave do jogador (Player) e o tiro dela (Bullet).
  * Controles: setas/WASD movem, botão do mouse, espaço ou Enter atiram.
+ * No celular: joystick e botão de tiro de js/ui/touch.js (touchControls).
  */
 
 /** Tiro da nave. Sobe reto (com um desvio lateral vx para as naves com canos nas asas). */
@@ -36,12 +37,43 @@ class Bullet {
   }
 
   /** Traço brilhante (2 passadas no lugar de shadowBlur, que era caro com muitos tiros). */
-  draw() {
+  /**
+   * Sprite do tiro (linha fina com brilho desfocado, o visual original), desenhado uma vez
+   * no cache com shadowBlur e depois só copiado: fica bonito sem pesar com muitos tiros.
+   */
+  static sprite(electric) {
+    const length = px(22);
     const width = Math.max(2, px(3));
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y + px(15));
-    ctx.lineTo(this.x - this.vx * 0.008, this.y - px(7));
-    glowStroke(this.electric ? "#fff3a0" : "#86f6ff", width, { glow: width * 3.5, glowAlpha: this.electric ? 0.4 : 0.3 });
+    const blur = electric ? 16 : 12;
+    const pad = Math.ceil(blur * 1.6);
+    const key = `bullet|${electric}|${length.toFixed(1)}|${width.toFixed(1)}`;
+    return SpriteCache.shape(key, width + pad * 2, length + pad * 2, (c) => {
+      c.strokeStyle = electric ? "#fff3a0" : "#86f6ff";
+      c.lineWidth = width;
+      c.shadowColor = electric ? "#ffe66d" : "#5eeaff";
+      c.shadowBlur = blur * RENDER_DPR; // shadowBlur ignora a escala do contexto
+      c.beginPath();
+      c.moveTo(0, length / 2);
+      c.lineTo(0, -length / 2);
+      c.stroke();
+    });
+  }
+
+  draw() {
+    const entry = Bullet.sprite(this.electric);
+    // Do pé (y + 15) à ponta (y - 7), inclinado pelo vx dos canos laterais
+    const dx = -this.vx * 0.008;
+    const cx = this.x + dx / 2;
+    const cy = this.y + px(4);
+    if (!dx) {
+      ctx.drawImage(entry.canvas, cx - entry.w / 2, cy - entry.h / 2, entry.w, entry.h);
+      return;
+    }
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.atan2(dx, px(22)));
+    SpriteCache.drawCentered(entry);
+    ctx.restore();
   }
 }
 
@@ -81,8 +113,8 @@ class Player extends Signals {
     this.resistance = SAVE.upgrades_level.resistance * BALANCE.resistancePerLevel;
     this.maxResistance = this.resistance;
     this.shieldProgress = 0; // 0..1: animação do escudo aparecendo/sumindo
-    this.acceleration = 1000;
-    this.drag = 2.4;
+    this.acceleration = 750;
+    this.drag = 2;
     this.fireRate = fireIntervalFor(SAVE.upgrades_level.fireRate);
     this.hitbox = new Hitbox(this, this.radius);
     this.updateHitbox();
@@ -134,7 +166,7 @@ class Player extends Signals {
 
   update(dt) {
     // TIROS
-    if (this.#keys.has("enter") || this.#keys.has(" ") || this.#isShooting)
+    if (this.#keys.has("enter") || this.#keys.has(" ") || this.#isShooting || touchControls.firing)
       this.shoot();
     this.#bullets.forEach(b => b.update(dt));
     this.#bullets = this.#bullets.filter(b => !b.dead);
@@ -163,7 +195,7 @@ class Player extends Signals {
     // ============================
     const { w, h } = viewport();
     const speedMultiplier = effects.moveSpeedMultiplier(); // speedBoost
-    const maxSpeed = px(BALANCE.baseMoveSpeed) * speedMultiplier;
+    let maxSpeed = px(BALANCE.baseMoveSpeed) * speedMultiplier;
     const acceleration = px(this.acceleration) * speedMultiplier;
 
     // Direção desejada pelo jogador
@@ -173,6 +205,17 @@ class Player extends Signals {
     if (this.#keys.has("arrowright") || this.#keys.has("d")) dx++;
     if (this.#keys.has("arrowup") || this.#keys.has("w")) dy--;
     if (this.#keys.has("arrowdown") || this.#keys.has("s")) dy++;
+
+    // Joystick de toque (analógico): sem teclas, usa a direção dele; arrastar pouco = mais devagar
+    if (dx === 0 && dy === 0) {
+      const stick = touchControls.move;
+      const strength = Math.min(1, Math.hypot(stick.x, stick.y));
+      if (strength > 0) {
+        dx = stick.x;
+        dy = stick.y;
+        maxSpeed *= 0.35 + 0.65 * strength;
+      }
+    }
 
     // ACELERAÇÃO E INÉRCIA
     if (dx !== 0 || dy !== 0) {
@@ -214,7 +257,7 @@ class Player extends Signals {
     const margin = this.radius + px(8);
     const minX = margin;
     const maxX = Math.max(minX, w - margin);
-    const minY = margin;
+    const minY = ARENA_TOP + margin; // não entra na faixa do HUD
     const maxY = Math.max(minY, h - margin);
 
     if (this.x < minX) {
@@ -415,7 +458,7 @@ class Player extends Signals {
 
     // Contorno
     ctx.globalAlpha = parentAlpha * progress * fieldOpacity;
-    glowStroke(shieldColor, 1.8, { glow: critical ? 8 + oscillation * 6 : 8, glowAlpha: 0.3 });
+    glowStroke(shieldColor, 1.8, { glow: critical ? 6 + oscillation * 3 : 7, glowAlpha: critical ? 0.22 : 0.25, soft: true });
 
     // ========================================
     // ARCOS DE ENERGIA
@@ -430,7 +473,7 @@ class Player extends Signals {
       ctx.moveTo(Math.cos(start) * (radius + 3), Math.sin(start) * (radius + 3));
       ctx.arc(0, 0, radius + 3, start, start + 0.65);
     }
-    if (critical) glowStroke(shieldColor, 2.5, { glow: 8 + oscillation * 8, glowAlpha: 0.35 });
+    if (critical) glowStroke(shieldColor, 2.5, { glow: 6 + oscillation * 3, glowAlpha: 0.25, soft: true });
     else {
       ctx.strokeStyle = shieldColor;
       ctx.lineWidth = 2.5;
@@ -590,7 +633,7 @@ class Player extends Signals {
     const fireInterval = this.fireRate * effects.fireIntervalMultiplier();
     if (now - this.#lastShotTime < fireInterval) return;
     this.#lastShotTime = now;
-    playTone(560, 0.035, 0.018, "square");
+    Sfx.shoot(this.#skinIndex, effects.isActive("electricShot"));
     for (const muzzle of this.#muzzles) {
       const { x, y } = this.muzzlePosition(muzzle);
       this.#bullets.push(new Bullet(x, y, muzzle.vx ?? 0));

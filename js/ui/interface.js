@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * @file Interface em HTML: telas, modais, HUD, hangar, efeitos ativos e o arquivo de ameaças.
+ * @file Interface em HTML: telas, modais, HUD, hangar, efeitos ativos e o glossário.
  *
  * Desempenho: o HUD e o hangar são atualizados a cada quadro, mas setText/setWidth só mexem
  * no DOM quando o valor muda (escrever no DOM a cada quadro faz o navegador recalcular o layout).
@@ -117,7 +117,7 @@ function updateMenuUI() {
   setText(resistanceCost, money(getCostUpgrade("resistance")));
 }
 
-/** Arquivo de ameaças: quantos de cada tipo já foram derrotados, por categoria e no total. */
+/** Glossário, aba Ameaças: quantos de cada tipo já foram derrotados, por categoria e no total. */
 function updateThreatArchive() {
   const kills = SAVE.kills;
   const byCategory = { common: 0, special: 0, boss: 0 };
@@ -227,3 +227,78 @@ function updateCompletedUI(result) {
   completeBonus.textContent = `+${money(result.coins)}`;
   animateBar(completeProgressBar, 1);
 }
+
+// ============================================================
+// GLOSSÁRIO (abas: ameaças, efeitos, controles e áudio)
+// ============================================================
+
+const glossary = $("help");
+const glossaryTabs = [...glossary.querySelectorAll(".glossary-tab")];
+const glossaryPanels = [...glossary.querySelectorAll(".glossary-panel")];
+
+/** Mostra a aba `name` do glossário. */
+function showGlossaryTab(name) {
+  for (const tab of glossaryTabs) tab.setAttribute("aria-selected", String(tab.dataset.tab === name));
+  for (const panel of glossaryPanels) {
+    const active = panel.dataset.panel === name;
+    panel.hidden = !active;
+    if (active) panel.scrollTop = 0;
+  }
+}
+
+/**
+ * Abre o glossário numa aba. Aberto pela pausa, ao fechar volta para a pausa
+ * (ver o evento "close" abaixo); aberto pelo hangar, só fecha.
+ */
+function openGlossary(tab = "threats") {
+  updateThreatArchive();
+  showGlossaryTab(tab);
+  showModal("help");
+}
+
+glossaryTabs.forEach((tab) => tab.addEventListener("click", () => showGlossaryTab(tab.dataset.tab)));
+glossary.addEventListener("close", () => {
+  if (state.mode === "paused") showModal("pause");
+});
+
+// ============================================================
+// ÁUDIO (glossário, aba "Controles e áudio")
+// ============================================================
+
+const soundIcon = $("soundIcon");
+const musicVolumeInput = $("musicVolume");
+const sfxVolumeInput = $("sfxVolume");
+const muteToggle = $("muteToggle");
+
+/** Pinta a parte cheia do slider (--value) e escreve a % ao lado. */
+function renderRange(input, value) {
+  const percent = Math.round(value * 100);
+  input.value = percent;
+  input.style.setProperty("--value", `${percent}%`);
+  const output = input.parentElement?.querySelector("output");
+  if (output) output.textContent = `${percent}%`;
+}
+
+/** Mostra nos sliders, no interruptor e no ícone do som o que está salvo em SAVE.audio. */
+function renderAudioSettings() {
+  const { music: m, sfx, muted } = SAVE.audio;
+  soundIcon.classList.toggle("is-muted", muted);
+  muteToggle.setAttribute("aria-checked", String(!muted));
+  soundIcon.setAttribute("aria-label", muted ? "Som desligado" : "Som ligado");
+  renderRange(musicVolumeInput, m);
+  renderRange(sfxVolumeInput, sfx);
+}
+
+/** Salva uma mudança de áudio e aplica na hora. */
+function changeAudio(patch) {
+  Object.assign(SAVE.audio, patch);
+  DATA.save(SAVE);
+  audio.applyVolumes();
+  renderAudioSettings();
+}
+
+muteToggle.addEventListener("click", () => changeAudio({ muted: !SAVE.audio.muted }));
+musicVolumeInput.addEventListener("input", () => changeAudio({ music: musicVolumeInput.value / 100, muted: false }));
+sfxVolumeInput.addEventListener("input", () => changeAudio({ sfx: sfxVolumeInput.value / 100, muted: false }));
+sfxVolumeInput.addEventListener("change", () => Sfx.shoot(SAVE.selectedShip)); // amostra ao soltar
+renderAudioSettings();

@@ -20,6 +20,9 @@ class GravityBoss extends BossAsteroid {
   /** Quantos asteroides ele segura em órbita (escudo): 4 / 5 / 6 conforme a fase. */
   maxShields() { return 3 + this.phase; }
 
+  /** Alcance da gravidade: só puxa asteroides até esta distância do centro dele. */
+  pullRange() { return this.radius + px(280); }
+
   /** Asteroides presos na gravidade dele. */
   orbiters() {
     return asteroids.filter((a) => !a.dead && a.orbitHost === this);
@@ -39,7 +42,8 @@ class GravityBoss extends BossAsteroid {
     if (free <= 0) return;
     const distance = (a) => Math.hypot(a.x - this.x, a.y - this.y);
     const candidates = asteroids
-      .filter((a) => !a.dead && !a.boss && !a.orbitHost && !a.launched && a.inArena && !(a.entryDelay > 0))
+      .filter((a) => !a.dead && !a.boss && !a.orbitHost && !a.launched && a.inArena && !(a.entryDelay > 0)
+        && distance(a) <= this.pullRange())
       .sort((a, b) => distance(a) - distance(b));
     for (const a of candidates) {
       if (free-- <= 0) break;

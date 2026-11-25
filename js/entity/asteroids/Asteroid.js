@@ -754,18 +754,43 @@ class Asteroid extends Signals {
     ctx.restore();
   }
 
-  /** Vida: número no centro (asteroides) ou barra + número acima (bosses, para não cobrir o sprite). */
+  /**
+   * Vida: número no centro (asteroides) ou barra + "NOME  vida" acima (bosses, para não cobrir
+   * o sprite). O nome fica à esquerda do número, na cor do boss, e o conjunto é centralizado.
+   * Os bosses que patrulham ficam baixo o bastante para isso caber (BossAsteroid.patrolTop).
+   */
   drawHealth() {
-    ctx.font = `700 ${Math.round(14 * clamp(SCALE, 0.75, 1.2))}px Orbitron, sans-serif`;
+    const textScale = clamp(SCALE, 0.85, 1.2);
+    ctx.font = `700 ${Math.round(14 * textScale)}px Orbitron, sans-serif`;
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     if (!this.boss) {
       ctx.fillText(this.hp, 0, 5);
       return;
     }
-    ctx.fillText(this.hp, 0, -this.radius - px(28));
-    const width = this.size * 0.95;
+
+    const textY = -this.radius - px(28);
     const barY = -this.radius - px(20);
+    const hpText = String(this.hp);
+    const name = (this.displayName ?? "").toUpperCase();
+    if (name) {
+      const hpWidth = ctx.measureText(hpText).width;
+      const nameFont = `700 ${Math.round(11 * textScale)}px Orbitron, sans-serif`;
+      ctx.font = nameFont;
+      const nameWidth = ctx.measureText(name).width;
+      const gap = 8 * textScale;
+      const left = -(nameWidth + gap + hpWidth) / 2;
+      ctx.textAlign = "left";
+      ctx.fillStyle = this.nameColor ?? "#fff";
+      ctx.fillText(name, left, textY);
+      ctx.font = `700 ${Math.round(14 * textScale)}px Orbitron, sans-serif`;
+      ctx.fillStyle = "#fff";
+      ctx.fillText(hpText, left + nameWidth + gap, textY);
+      ctx.textAlign = "center";
+    } else {
+      ctx.fillText(hpText, 0, textY);
+    }
+    const width = this.size * 0.95;
     const barH = Math.max(3, px(5));
     ctx.fillStyle = "#252a44";
     ctx.fillRect(-width / 2, barY, width, barH);

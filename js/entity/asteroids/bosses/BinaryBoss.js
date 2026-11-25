@@ -62,6 +62,10 @@ class BinaryBoss extends BossAsteroid {
   /** Cor do núcleo em RGB (efeitos e textos). */
   get rgb() { return this.color === "orange" ? "255, 160, 70" : "110, 210, 255"; }
 
+  /** Cada núcleo leva a própria cor no nome. */
+  get displayName() { return `Binário ${this.color === "orange" ? "Laranja" : "Azul"}`; }
+  get nameColor() { return `rgb(${this.rgb})`; }
+
   /** Ângulo deste núcleo em volta do centro do par (o laranja fica do lado oposto). */
   pairAngle() { return this.pair.angle + (this.color === "orange" ? Math.PI : 0); }
 
@@ -306,7 +310,7 @@ class BinaryBoss extends BossAsteroid {
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `800 ${Math.round(18 * clamp(SCALE, 0.75, 1.2))}px Orbitron, sans-serif`;
+    ctx.font = `800 ${Math.round(18 * clamp(SCALE, 0.85, 1.2))}px Orbitron, sans-serif`;
     ctx.fillText(Math.ceil(this.reviveTimer), 0, 0);
     ctx.restore();
   }

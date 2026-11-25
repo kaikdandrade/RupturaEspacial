@@ -87,7 +87,7 @@ function finishRun(completed) {
   return state.playing.result;
 }
 
-/** Saiu no meio da partida (pelo pause): os abates feitos até ali entram no arquivo de ameaças. */
+/** Saiu no meio da partida (pelo pause): os abates feitos até ali entram no glossário (aba Ameaças). */
 function abandonRun() {
   if (state.playing.result) return;
   addKills(state.playing.kills);

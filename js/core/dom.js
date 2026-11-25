@@ -19,7 +19,7 @@ const ctx = canvas.getContext("2d", { alpha: true });
 // ---------------- Telas e modais ----------------
 const screens = $$(".screen");
 const modals = $$("dialog");
-const buttonCloseModals = $$(".close-modal");
+const buttonCloseModals = $$(".close-modal, [data-back]");
 
 // ---------------- Hangar (menu principal) ----------------
 const bestScore = $("best-score");
@@ -97,5 +97,5 @@ const nextLevelPlayButton = $("nextLevelPlayButton");
 const retryButtons = $$(".btn-retry");
 const hangarButtons = $$(".btn-hangar");
 
-// ---------------- Arquivo de ameaças ----------------
+// ---------------- Glossário (aba Ameaças) ----------------
 const archiveTotal = $("archiveTotal");

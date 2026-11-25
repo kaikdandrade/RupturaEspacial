@@ -70,37 +70,6 @@ function money(value) {
 }
 
 // ============================================================
-// SOM
-// ============================================================
-
-/** @type {AudioContext | null} criado no primeiro som (o navegador só libera após interação) */
-let audioCtx = null;
-
-/**
- * Toca um bipe simples (sem arquivos de áudio).
- * @param {number} freq frequência em Hz
- * @param {number} duration duração em segundos
- * @param {number} volume 0..1
- * @param {OscillatorType} type forma de onda
- */
-function playTone(freq = 440, duration = 0.04, volume = 0.03, type = "sine") {
-  try {
-    audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(volume, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
-  } catch {
-    /* áudio é opcional */
-  }
-}
-
-// ============================================================
 // TELA E ESCALA
 // ============================================================
 
@@ -112,6 +81,32 @@ let SCALE = 1;
 
 /** Converte uma medida da tela de referência para a tela atual. */
 const px = (value) => value * SCALE;
+
+/**
+ * Escala do mundo para uma tela w×h (pixels CSS).
+ * - Tela deitada: a altura manda (o mundo tem sempre WORLD_REF.h unidades de altura).
+ * - Tela em pé: a largura manda (o mundo tem WORLD_REF.narrowW unidades de largura), senão no
+ *   celular tudo ficaria minúsculo para caber uma largura de PC.
+ */
+function worldScale(w, h) {
+  return clamp(Math.min(h / WORLD_REF.h, w / WORLD_REF.narrowW), WORLD_REF.min, WORLD_REF.max) || 1;
+}
+
+/**
+ * Quanto da arena de referência cabe na tela atual (0,45 a 1). Telas em pé mostram um mundo
+ * menor (ex.: celular ≈ 0,6), então cabem menos asteroides ao mesmo tempo sem lotar a arena.
+ */
+function arenaDensityFactor() {
+  const worldArea = (VIEW.w / SCALE) * ((VIEW.h - ARENA_TOP) / SCALE);
+  const refArea = WORLD_REF.w * (WORLD_REF.h - ARENA_TOP);
+  return clamp(worldArea / refArea, 0.45, 1);
+}
+
+/** Máximo de asteroides ao mesmo tempo ajustado ao tamanho da arena (caps até 2 não mudam). */
+function fitActiveCap(cap) {
+  if (cap <= 2) return cap;
+  return Math.max(2, Math.round(cap * arenaDensityFactor()));
+}
 
 /** Tamanho atual do canvas em pixels CSS. Atualizado em resize(): ler aqui é grátis. */
 const VIEW = { w: 0, h: 0 };
