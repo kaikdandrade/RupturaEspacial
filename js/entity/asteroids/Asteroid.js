@@ -123,7 +123,7 @@ class Asteroid extends Signals {
 
   /** Converte a vida retirada em score (só dano causado pelo jogador: tiro ou efeitos). */
   scoreDamage(removed, source) {
-    if (removed <= 0 || (source !== "shot" && source !== "burn")) return;
+    if (this.noScore || removed <= 0 || (source !== "shot" && source !== "burn")) return;
     state.playing.score += removed * BALANCE.score.perDamage * effects.scoreMultiplier();
   }
 
@@ -136,21 +136,24 @@ class Asteroid extends Signals {
   }
 
   /**
-   * Raio em cascata (tiro elétrico): a partir do asteroide atingido, pula para o vizinho mais
-   * próximo ainda não atingido, até `jumps` vezes. Cada pulo causa `falloff` do dano anterior
-   * e o raio para quando o dano fica abaixo de 1. Bosses também levam o choque.
+   * Raio em cascata (tiro elétrico / Tempestade): a partir do asteroide atingido, pula para o
+   * vizinho mais próximo ainda não atingido, até `jumps` vezes. Cada pulo causa `falloff` do dano
+   * anterior (vezes damageMultiplier do Supercondutor) e o raio para quando o dano fica abaixo
+   * de 1. Bosses também levam o choque.
    * @param {Asteroid} origin asteroide atingido pelo tiro
    * @param {number} damage dano do tiro
-   * @param {{ jumps: number, range: number, falloff: number }} chain ver Effect.chainLightning()
+   * @param {{ jumps: number, range: number, falloff: number, damageMultiplier?: number }} chain
+   *   ver Effect.chainLightning()
    */
-  static chainLightning(origin, damage, { jumps, range, falloff }) {
+  static chainLightning(origin, damage, { jumps, range, falloff, damageMultiplier = 1 }) {
+    const color = damageMultiplier > 1 ? BOLT_COLORS.superconductor : BOLT_COLORS.electric;
     const reach = px(range);
     const struck = new Set([origin]);
     let from = origin;
     let current = damage;
     for (let i = 0; i < jumps; i++) {
       current *= falloff;
-      const jumpDamage = Math.round(current);
+      const jumpDamage = Math.round(current * damageMultiplier);
       if (jumpDamage < 1) break; // o raio perdeu força
       let next = null;
       let best = Infinity;
@@ -161,7 +164,7 @@ class Asteroid extends Signals {
       }
       if (!next) break;
       struck.add(next);
-      spawnBolt(from.x, from.y, next.x, next.y);
+      spawnBolt(from.x, from.y, next.x, next.y, color);
       next.hit(jumpDamage, "shot");
       from = next;
     }
@@ -400,7 +403,7 @@ class Asteroid extends Signals {
     const playerKill = reason === "shot" || reason === "burn";
     if (this.isPrimary && !this.boss) state.playing.kills.total += 1; // objetivo do setor
 
-    if (playerKill) {
+    if (playerKill && !this.noScore) {
       // A vida já virou pontos em hit(); aqui entram o bônus do tipo e o da sequência.
       // Especiais e bosses valem uma fração da vida média do setor (BALANCE.score).
       const { specialKill, bossKill } = BALANCE.score;
@@ -423,6 +426,7 @@ class Asteroid extends Signals {
 
     this.spawnDust();
     this.onDestroyed(reason);
+    if (playerKill) Reactions.onAsteroidDestroyed(this); // Sobrecarga: explode se estava em chamas
     this.emit("destroyed", { asteroid: this, reason, playerKill });
   }
 
@@ -433,11 +437,14 @@ class Asteroid extends Signals {
   /** Estado visual atual: quais efeitos globais estão de fato afetando este asteroide. */
   effectVisualState() {
     const speed = effects.asteroidSpeedMultiplier(this);
+    const burning = effects.burnAffects(this);
     return {
-      burning: effects.isActive("flame") && effects.burnAffects(this),
+      burning,
+      incinerating: burning && effects.isActive("incinerate"),     // fogo forte (ticks rápidos)
+      overloaded: burning && effects.overloadArmed(this),           // bomba-relógio (Sobrecarga)
       frozenSolid: effects.isActive("freeze") && speed === 0,        // congelado (parado)
       chilled: speed < 1 && !(effects.isActive("freeze") && speed === 0), // só lento (frio)
-      deepChill: effects.isActive("freeze") && speed > 0 && speed < 1, // lento pelo freeze (fogo / boss)
+      deepChill: effects.isActive("freeze") && speed > 0 && speed < 1, // lento pelo congelamento (boss)
     };
   }
 
@@ -459,10 +466,8 @@ class Asteroid extends Signals {
 
   /** Timers dos flashes instantâneos + partículas contínuas (brasas e cristais de gelo). */
   updateEffectFx(dt) {
-    const fx = this.fx ??= { incinerate: 0, freezeBurst: 0, bleve: 0, emberTimer: 0 };
-    fx.incinerate = Math.max(0, fx.incinerate - dt);
-    fx.freezeBurst = Math.max(0, fx.freezeBurst - dt);
-    fx.bleve = Math.max(0, fx.bleve - dt);
+    const fx = this.fx ??= { evaporation: 0, emberTimer: 0 };
+    fx.evaporation = Math.max(0, (fx.evaporation ?? 0) - dt);
 
     if (!this.enteredArena) return;
     const { burning, frozenSolid, chilled } = this.effectVisualState();
@@ -470,7 +475,7 @@ class Asteroid extends Signals {
     if (fx.emberTimer > 0) return;
 
     if (burning) {
-      fx.emberTimer = random(0.05, 0.11);
+      fx.emberTimer = effects.isActive("incinerate") ? random(0.02, 0.05) : random(0.05, 0.11);
       this.spawnFxParticles(1, () => [random(0, 1) < 0.5 ? "255, 196, 92" : "255, 120, 60"], {
         speed: [20, 55], direction: this.trailAngle(), life: [0.35, 0.7], size: [1.6, 3.2],
       });
@@ -506,16 +511,12 @@ class Asteroid extends Signals {
     }
   }
 
-  /** Disparado pelos eventos de efeitos instantâneos (ver listeners no fim do arquivo). */
+  /** Clarão de um efeito instantâneo neste asteroide (hoje: Evaporação, ver reactions.js). */
   flashEffect(kind) {
     if (this.dead) return;
-    const fx = this.fx ??= { incinerate: 0, freezeBurst: 0, bleve: 0, emberTimer: 0 };
-    fx[kind] = kind === "bleve" ? 0.7 : 0.5;
-    if (kind === "incinerate") {
-      this.spawnFxParticles(14, () => [random(0, 1) < 0.5 ? "255, 214, 120" : "255, 110, 50"], { speed: [60, 170], life: [0.25, 0.5], size: [2, 3.6] });
-    } else if (kind === "freezeBurst") {
-      this.spawnFxParticles(12, () => ["210, 248, 255"], { speed: [50, 140], life: [0.3, 0.6], size: [1.6, 3] });
-    } else if (kind === "bleve") {
+    const fx = this.fx ??= { evaporation: 0, emberTimer: 0 };
+    fx[kind] = 0.7;
+    if (kind === "evaporation") {
       this.spawnFxParticles(10, () => ["255, 190, 90"], { speed: [80, 200], life: [0.25, 0.5], size: [2, 3.8] });
       this.spawnFxParticles(10, () => ["225, 235, 245"], { speed: [20, 70], life: [0.6, 1], size: [3, 5.5] }); // vapor
     }
@@ -610,7 +611,7 @@ class Asteroid extends Signals {
 
   /** Camada NA FRENTE do sprite: tinta de cor, casca de gelo, cristais e flashes. */
   drawEffectOverlay() {
-    const { burning, frozenSolid, chilled, deepChill } = this.effectVisualState();
+    const { burning, overloaded, frozenSolid, chilled, deepChill } = this.effectVisualState();
     const fx = this.fx ?? {};
     const r = this.radius;
 
@@ -620,10 +621,11 @@ class Asteroid extends Signals {
     if (frozenSolid) this.drawTint("#bfefff", 0.5);
     else if (deepChill) this.drawTint("#9fe6ff", 0.38);
     else if (chilled) this.drawTint("#8fdcff", 0.24);
-    if (burning) this.drawTint("#ff7a2e", 0.16 + Math.abs(Math.sin(this.age * 11)) * 0.12);
-    if (fx.incinerate > 0) this.drawTint("#fff1c2", (fx.incinerate / 0.5) * 0.85);
-    if (fx.freezeBurst > 0) this.drawTint("#ffffff", (fx.freezeBurst / 0.5) * 0.7);
-    if (fx.bleve > 0) this.drawTint("#ffe0a8", (fx.bleve / 0.7) * 0.8);
+    if (burning) {
+      const strong = effects.isActive("incinerate");
+      this.drawTint(strong ? "#ff5a1e" : "#ff7a2e", (strong ? 0.28 : 0.16) + Math.abs(Math.sin(this.age * (strong ? 19 : 11))) * 0.12);
+    }
+    if (fx.evaporation > 0) this.drawTint("#ffe0a8", (fx.evaporation / 0.7) * 0.8);
     ctx.restore();
 
     // Frio: cristais pequenos orbitando
@@ -675,11 +677,22 @@ class Asteroid extends Signals {
       glowStroke(color, 4 * (1 - k) + 1, { glow: 14, glowAlpha: 0.3 });
       ctx.restore();
     };
-    if (fx.incinerate > 0) wave(fx.incinerate, 0.5, "#ff8a3d", 1.2);
-    if (fx.freezeBurst > 0) wave(fx.freezeBurst, 0.5, "#c8f6ff", 1.1);
-    if (fx.bleve > 0) {
-      wave(fx.bleve, 0.7, "#ffb347", 1.8);
-      if (fx.bleve > 0.35) wave(fx.bleve - 0.35, 0.35, "#ffffff", 1.2);
+    if (fx.evaporation > 0) {
+      wave(fx.evaporation, 0.7, "#ffb347", 1.8);
+      if (fx.evaporation > 0.35) wave(fx.evaporation - 0.35, 0.35, "#ffffff", 1.2);
+    }
+
+    // Sobrecarga: anel elétrico piscando (bomba-relógio) em quem está em chamas
+    if (overloaded) {
+      const pulse = 0.5 + 0.5 * Math.sin(this.age * 16);
+      ctx.save();
+      ctx.globalAlpha = 0.45 + pulse * 0.5;
+      ctx.setLineDash([px(5), px(4)]);
+      ctx.lineDashOffset = -this.age * 40;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * (1.15 + pulse * 0.08), 0, Math.PI * 2);
+      glowStroke("rgba(255, 236, 120, .95)", 2, { glow: 6, glowAlpha: 0.35, soft: true });
+      ctx.restore();
     }
   }
 
@@ -765,6 +778,11 @@ class Asteroid extends Signals {
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     if (!this.boss) {
+      // Contorno escuro: o número continua legível sobre sprites claros (ex.: Elétrico, Glacial)
+      ctx.lineJoin = "round";
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = "rgba(5, 8, 23, .85)";
+      ctx.strokeText(this.hp, 0, 5);
       ctx.fillText(this.hp, 0, 5);
       return;
     }

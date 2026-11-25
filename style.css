@@ -740,6 +740,22 @@
   }
 }
 
+/* Nave não comprada: melhorias bloqueadas (cada nave tem as suas) */
+.workshop-lock {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border: 1px dashed rgb(255 210 103 / 0.5);
+  border-radius: var(--radius-sm);
+  background: rgb(255 210 103 / 0.06);
+  color: var(--yellow);
+  font-size: 0.8rem;
+  text-align: center;
+
+  &[hidden] { display: none; }
+}
+
+.upgrade-strip.is-locked { opacity: 0.5; filter: grayscale(0.6); }
+
 .upgrade-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1299,7 +1315,7 @@
   .effect-badge__time { font-size: max(var(--fs-min), 0.58rem); }
 }
 
-/* Aviso grande no centro (efeitos instantâneos: BLEVE, Incinerate, Freeze...) */
+/* Aviso grande no centro (Evaporação e as evoluções/combinações: Congelamento, Tempestade...) */
 .effect-toast {
   --effect-color: var(--yellow);
 
@@ -1324,8 +1340,11 @@
 [data-effect="frozen"] { --effect-color: #78e7ff; --effect-icon: url("assets/asteroids/special/frozen.png"); }
 [data-effect="freeze"] { --effect-color: #c4f6ff; --effect-icon: url("assets/asteroids/special/frozen.png"); }
 [data-effect="flame"] { --effect-color: #ff8c5c; --effect-icon: url("assets/asteroids/special/volcanic.png"); }
-[data-effect="incinerate"] { --effect-color: #ff6a3d; --effect-icon: url("assets/icons/damage.png"); }
-[data-effect="bleve"] { --effect-color: #ffb347; --effect-icon: url("assets/icons/sparks.png"); }
+[data-effect="incinerate"] { --effect-color: #ff5a1e; --effect-icon: url("assets/asteroids/special/volcanic.png"); }
+[data-effect="evaporation"] { --effect-color: #ffd9a0; --effect-icon: url("assets/icons/damage.png"); }
+[data-effect="storm"] { --effect-color: #c8aaff; --effect-icon: url("assets/asteroids/special/electric.png"); }
+[data-effect="superconductor"] { --effect-color: #7cf7e0; --effect-icon: url("assets/asteroids/special/frozen.png"); }
+[data-effect="overload"] { --effect-color: #ffb14a; --effect-icon: url("assets/icons/sparks.png"); }
 [data-effect="scoreBonus"] { --effect-color: var(--yellow); --effect-icon: url("assets/icons/trophy.png"); }
 [data-effect="quickShot"] { --effect-color: var(--cyan); --effect-icon: url("assets/icons/cadence.png"); }
 [data-effect="speedBoost"] { --effect-color: var(--success); --effect-icon: url("assets/ships/ship_1.png"); }
@@ -1762,11 +1781,20 @@
   .volume-row--switch { grid-template-columns: 1fr auto auto; }
 }
 
-/* Instruções de controle: toque no celular/tablet, teclado no PC (classe posta pelo touch.js) */
-.touch-only { display: none !important; }
-html.is-touch {
-  .touch-only { display: flex !important; }
-  .keys-only { display: none !important; }
+/* Ícone de mouse dentro da tecla "SEGURAR CLIQUE" */
+.key.key--mouse {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
 }
 
 .control-hint {
@@ -2031,6 +2059,9 @@ html.is-touch {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   padding-top: 8px; /* espaço para o selo de recorde, que fica metade acima do card */
+
+  /* Derrota: só a pontuação (não se ganha centelhas perdendo) */
+  &.go-cards--single { grid-template-columns: 1fr; }
 }
 
 .go-card {
@@ -2181,6 +2212,23 @@ html.is-touch {
   }
 
   &.guide-card h4 { color: var(--effect-color); }
+}
+
+/* Receita da combinação ao lado do nome do efeito (ex.: "fogo + gelo") */
+.effect-combo {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: max(var(--fs-min), 0.62rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 }
 
 .guide-note {

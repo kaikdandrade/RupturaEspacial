@@ -67,6 +67,7 @@ function updatePlaying(dt) {
   for (const p of pickups) p.update(dt);
   collisions.update();
   effects.update(dt);
+  Reactions.update(dt);
 
   asteroids = asteroids.filter((a) => !a.dead);
   pickups = pickups.filter((p) => !p.dead);
@@ -191,6 +192,7 @@ function draw() {
     for (const p of pickups) p.draw();
     for (const a of asteroids) a.draw();
     drawBolts();
+    drawBlasts();
     player.draw();
   }
   drawParticles();

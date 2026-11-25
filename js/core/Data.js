@@ -16,7 +16,8 @@ class Data {
     bestScore: 0,                                  // recorde de pontuação
     highestLevel: 0,                               // maior setor VENCIDO (0 = nenhum)
     selectedLevel: 1,                              // setor escolhido no hangar
-    upgrades_level: { damage: 0, fireRate: 0, resistance: 0 },
+    // Melhorias de CADA nave (índice = SHIPS): nave nova começa do zero
+    shipUpgrades: [0, 1, 2, 3].map(() => ({ damage: 0, fireRate: 0, resistance: 0 })),
     kills: {},                                     // total derrotado por tipo: { common: 12, frozen: 3, ... }
     autoFire: false,                               // tiro automático (controles de toque)
     audio: { music: 0.7, sfx: 0.8, muted: false }, // volumes (0..1) e mudo

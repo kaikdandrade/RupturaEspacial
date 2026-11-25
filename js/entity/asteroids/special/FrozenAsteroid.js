@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * @file Asteroide Glacial: ao ser destruído dropa o card de gelo (efeito "frozen":
- * deixa os asteroides lentos; pegando outro com ele ativo, congela tudo).
+ * @file Asteroide Glacial: ao ser destruído dropa o card de gelo (efeito "frozen": deixa todos
+ * os asteroides lentos). Combinações do gelo (Congelamento, Evaporação, Supercondutor): Effects.js.
  */
 class FrozenAsteroid extends Asteroid {
   constructor(config) {

@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * @file Asteroide Vulcânico: ao ser destruído dropa o card de fogo (efeito "flame":
- * queima todos os asteroides; pegando outro com ele ativo, tudo explode). É imune ao fogo.
+ * @file Asteroide Vulcânico: ao ser destruído dropa o card de fogo (efeito "flame": queima
+ * todos os asteroides). Combinações do fogo (Incineração, Evaporação, Sobrecarga): Effects.js.
  */
 class VolcanicAsteroid extends Asteroid {
   constructor(config) {

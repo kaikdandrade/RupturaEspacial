@@ -26,16 +26,27 @@ No celular o jogo também pausa sozinho ao trocar de aplicativo ou bloquear a te
 - **Setores sem fim:** cada setor pede um número de asteroides destruídos. A dificuldade (vida,
   quantidade, velocidade e dano) cresce sem limite de nível.
 - **Asteroides especiais** (a partir do setor 5) deixam cartas de efeito ao serem destruídos:
-  - **Congelado:** lentidão e congelamento
-  - **Vulcânico:** chamas
-  - **Místico:** um efeito surpresa (tiro rápido, perfurante, mais dano, velocidade, bônus
-    de pontos ou invencibilidade)
-  - **Elétrico:** tiro elétrico com dano em cascata
-  - **Dourado:** não deixa carta, mas dá um bônus grande de pontos (e de créditos)
-- **Chefes** a cada 5 setores: Espinhoso, Hidra, Gravidade, Binário, Resistente e
-  Cibernético. Cada um tem seus ataques e regras próprias de arena.
-- **Oficina:** os créditos ganhos compram melhorias de dano, cadência e resistência, além de
-  novas naves.
+  - **Glacial:** gelo (Lentidão)
+  - **Vulcânico:** fogo (Chamas)
+  - **Elétrico:** raio (Tiro elétrico com dano em cascata)
+  - **Místico:** um bônus surpresa por 8 s (tiro rápido, perfurante, mais dano, velocidade,
+    pontos extras ou invulnerabilidade)
+  - **Dourado:** não deixa carta, mas dá um bônus grande de pontos
+- **Combinações elementais:** pegar um card com outro elemento ativo combina os dois.
+
+  |             | Fogo        | Gelo          | Raio          |
+  | ----------- | ----------- | ------------- | ------------- |
+  | **Fogo**    | Incineração | Evaporação    | Sobrecarga    |
+  | **Gelo**    |             | Congelamento  | Supercondutor |
+  | **Raio**    |             |               | Tempestade    |
+
+  Básicos duram 10 s, avançados 6 s; a Evaporação é instantânea e destrói todos os asteroides.
+- **Chefes** a cada 5 setores: Espinhoso, Hidra, Gravitacional, Binário, Resistente e
+  Cibernético. Cada um tem seus ataques e regras próprias de arena, e paga um **bônus de
+  vitória pelo desempenho** (rapidez e escudo que sobrou).
+- **Oficina:** as centelhas ganhas compram melhorias de dano, cadência e resistência **de cada
+  nave** (nave nova começa do nível inicial), além de novas naves. Só se ganha centelhas
+  vencendo o setor.
 - **Trilha sonora chiptune** gerada por código (Web Audio, sem arquivos de áudio): tema do
   hangar, batalha que ganha camadas conforme o setor esquenta, tema de chefe e vinhetas de
   vitória, recorde e derrota. Volume de música e efeitos e liga/desliga do som no glossário (aba Controles e áudio).

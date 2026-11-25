@@ -138,7 +138,7 @@ function spawnBoss() {
   state.boss = bosses[0];
   state.bossType = type;
   state.bossSpawned = true;
-  state.bossTotalHp = bosses.reduce((sum, boss) => sum + boss.maxHp, 0);
+  state.bossTotalHp = bosses.reduce((sum, boss) => sum + (boss.totalHp ?? boss.maxHp), 0);
   // A arena começa a mandar asteroides depois de um tempo
   state.bossSummonTimer = bossArenaRules().first ?? 3;
 }
@@ -170,7 +170,9 @@ function spawnHelpers(count) {
     const x = rules.nearBoss && state.boss
       ? clamp(state.boss.x + px(random(-rules.nearBoss, rules.nearBoss)), px(50), w - px(50))
       : undefined;
-    asteroids.push(spawnAsteroid({ helper: true, isPrimary: false, entryDelay: i * 0.15, type, x }));
+    const helper = spawnAsteroid({ helper: true, isPrimary: false, entryDelay: i * 0.15, type, x });
+    helper.noScore = !!rules.noScore; // arena do Gravitacional: sem pontos (anti-farm)
+    asteroids.push(helper);
   }
 }
 

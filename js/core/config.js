@@ -162,8 +162,8 @@ const BALANCE = {
   // ---------------- Setores (Level.js) ----------------
   levels: {
     // Vida média: base + perLevel·(n-1) + curve·(n-1)²; cada asteroide sorteia ±spread em volta dela
-    // setor 1 ≈ 2 · 10 ≈ 9 · 20 ≈ 19 · 40 ≈ 41 · 100 ≈ 130 · 200 ≈ 360
-    hp: { base: 2, perLevel: 0.8, curve: 0.005, spread: 0.18 },
+    // setor 1 ≈ 2 · 10 ≈ 11 · 20 ≈ 23 · 40 ≈ 51 · 100 ≈ 162 · 200 ≈ 448
+    hp: { base: 2, perLevel: 1, curve: 0.00625, spread: 0.18 },
     // Asteroides por setor: suave(10 → 40) + perLevelAfter por setor depois do setor `after`
     // setor 1 = 10 · 10 ≈ 19 · 20 ≈ 26 · 40 ≈ 34 · 100 ≈ 46 · 200 ≈ 56
     count: { base: 10, soft: 30, tau: 25, perLevelAfter: 0.1, after: 40 },
@@ -187,6 +187,10 @@ const BALANCE = {
     perDamage: 1,          // pontos por ponto de vida tirado (tiro, raio ou efeito)
     specialKill: 1,        // abater um especial: + specialKill × vida média
     bossKill: 6,           // abater um boss (cada núcleo/pedaço): + bossKill × vida média
+    // Vitória sobre o boss: + bossVictory × vida média × desempenho (performance.min..max).
+    // Desempenho = rapidez (parTime / tempo da luta) × escudo que sobrou (0,5 + fração restante).
+    bossVictory: 30,
+    bossPerformance: { parTime: 45, min: 0.4, max: 2 },
     timePerSecond: 0.03,   // sobrevivência: + timePerSecond × vida média por segundo...
     timeLimit: 60,         // ...durante os primeiros timeLimit segundos
   },
@@ -206,13 +210,19 @@ const BALANCE = {
     coinsPerScore: 0.7,    // centelhas por ponto
     levelBonus: 50,        // + 50 por setor (pesa mais no começo, quando a pontuação ainda é baixa)
     bossMultiplier: 1.6,   // setor de boss paga mais
-    defeatMultiplier: 0.5, // perdendo, leva metade
+    defeatMultiplier: 0,   // perdendo, não leva centelhas (só vencendo o setor)
   },
 
   // ---------------- Bosses ----------------
   // Vida = vida média do setor × (base + soft × (1 - e^(-n/tau)) + perLevel × n) × factor do boss
-  // setor 5 ≈ 90 · 10 ≈ 190 · 20 ≈ 500 · 40 ≈ 1.5K · 100 ≈ 6K
-  bossHp: { base: 12, soft: 30, tau: 30, perLevel: 0.05, factor: { thorny: 0.75, cyber: 0.85, resistance: 0.8, binary: 0.85 } },
+  // setor 5 ≈ 105 · 10 ≈ 250 · 20 ≈ 700 · 40 ≈ 2.2K · 100 ≈ 10K (antes do factor)
+  // O Resistente ainda tem armadura (50% da vida) que regenera; a Hidra se divide até 8 pedaços
+  // (só quando a vida do pedaço zera), então a vida total dela é 4× a do primeiro estágio.
+  bossHp: {
+    base: 15, soft: 38, tau: 30, perLevel: 0.065,
+    // hydra: vida de UM estágio (são 4 estágios, cada um somando essa vida)
+    factor: { thorny: 0.7, hydra: 0.5, gravity: 1, binary: 0.85, resistance: 1.15, cyber: 0.9 },
+  },
   // Dano dos projéteis de boss no escudo = dano de batida do setor × multiplicador
   // (sem escudo, qualquer acerto mata)
   bossProjectileDamage: {
@@ -229,10 +239,11 @@ const BALANCE = {
     // Luta longa (armadura): a arena ajuda com asteroides e cards para quebrar a defesa
     resistance: { interval: [3.5, 5], first: 2, cap: 3, capPerLevels: 25, special: 0.45 },
     // A arena gera e o Gravitacional ROUBA: usa como escudo em órbita e arremessa na nave.
+    // noScore: esses asteroides não dão pontos (evita farm); o boss paga pela vitória.
     // Ele depende disso: cap conta só os asteroides SOLTOS (os presos na órbita ou arremessados
     // não ocupam vaga), cada leva manda `batch` de uma vez e `nearBoss` faz eles nascerem na
     // faixa onde o boss está (a até nearBoss px dele na horizontal), para ele conseguir puxar.
-    gravity: { interval: [1, 1.6], first: 0.5, batch: 2, cap: 4, capPerLevels: 20, special: 0.12, nearBoss: 220 },
+    gravity: { interval: [1, 1.6], first: 0.5, batch: 2, cap: 4, capPerLevels: 20, special: 0.12, nearBoss: 220, noScore: true },
     // Já são difíceis por si: só um especial de vez em quando
     thorny: { interval: [11, 15], first: 7, cap: 2, onlySpecials: true },
     cyber: { interval: [10, 14], first: 6, cap: 2, onlySpecials: true },

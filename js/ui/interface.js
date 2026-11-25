@@ -96,22 +96,25 @@ function updateMenuUI() {
   prevShipButton.disabled = SAVE.selectedShip <= 0;
   nextShipButton.disabled = SAVE.selectedShip >= SHIPS.length - 1;
 
-  // Upgrades
-  const levels = SAVE.upgrades_level;
-  damageButton.disabled = SAVE.coins < getCostUpgrade("damage");
+  // Upgrades da nave selecionada (cada nave tem os seus; nave não comprada fica bloqueada)
+  const levels = shipUpgrades();
+  setText(workshopShip, ship.name.toUpperCase());
+  workshopLock.hidden = owned;
+  upgradeStrip.classList.toggle("is-locked", !owned);
+  damageButton.disabled = !owned || SAVE.coins < getCostUpgrade("damage");
   setText(damageValue, playerBaseDamage());
   setText(damageLevel, levels.damage);
   setText(damageCost, money(getCostUpgrade("damage")));
 
   const maxed = fireRateMaxed();
-  fireRateButton.disabled = maxed || SAVE.coins < getCostUpgrade("fireRate");
+  fireRateButton.disabled = !owned || maxed || SAVE.coins < getCostUpgrade("fireRate");
   fireRateButton.classList.toggle("max", maxed);
   fireRateCost.parentElement.hidden = maxed;
   setText(fireRateLevel, maxed ? "MAX" : levels.fireRate);
   setText(fireRateCost, money(getCostUpgrade("fireRate")));
   setText(fireRateValue, `${fireIntervalFor(levels.fireRate)} ms`);
 
-  resistanceButton.disabled = SAVE.coins < getCostUpgrade("resistance");
+  resistanceButton.disabled = !owned || SAVE.coins < getCostUpgrade("resistance");
   setText(resistanceValue, BALANCE.resistancePerLevel * levels.resistance);
   setText(resistanceLevel, levels.resistance);
   setText(resistanceCost, money(getCostUpgrade("resistance")));
@@ -209,7 +212,6 @@ function updateGameOverUI() {
   resultKills.textContent = money(progress.done);
   resultTotal.textContent = money(progress.total);
   resultBest.textContent = money(Math.floor(state.playing.score));
-  resultCoins.textContent = `+${money(state.playing.coins)}`;
   animateBar(resultProgressBar, progress.ratio);
 }
 

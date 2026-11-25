@@ -23,7 +23,8 @@ function unlockedLevel() {
 function levelProgress() {
   if (state.levelConfig?.isLevelBoss) {
     const total = state.bossTotalHp;
-    const remaining = asteroids.reduce((sum, a) => sum + (a.boss && !a.dead ? a.hp : 0), 0);
+    // remainingHp: a Hidra conta também os estágios que ainda vão nascer
+    const remaining = asteroids.reduce((sum, a) => sum + (a.boss && !a.dead ? (a.remainingHp?.() ?? a.hp) : 0), 0);
     const done = state.bossSpawned ? clamp(total - remaining, 0, total) : 0;
     return { boss: true, label: "Boss", detail: "Vida tirada do boss", done, total, ratio: total > 0 ? done / total : 0 };
   }
@@ -49,6 +50,24 @@ function calculateCoins(completed) {
   if (state.levelConfig.isLevelBoss) coins *= bossMultiplier;
   if (!completed) coins *= defeatMultiplier;
   return Math.round(coins);
+}
+
+/**
+ * Bônus de vitória sobre o boss, pelo desempenho: rapidez (parTime / tempo da luta) ×
+ * escudo que sobrou (0,5 + fração restante; sem escudo comprado conta como cheio).
+ * Soma na pontuação e mostra o multiplicador na tela. Retorna os pontos dados.
+ */
+function awardBossVictory() {
+  const { bossVictory, bossPerformance: perf } = BALANCE.score;
+  const fightTime = Math.max(1, state.playing.time);
+  const speed = perf.parTime / fightTime;
+  const shield = player.maxResistance > 0 ? player.resistance / player.maxResistance : 1;
+  const performance = clamp(speed * (0.5 + shield), perf.min, perf.max);
+  const points = Math.round(Asteroid.levelHp() * bossVictory * performance * effects.scoreMultiplier());
+  state.playing.score += points;
+  state.playing.bossPerformance = performance;
+  spawnFloatingText(VIEW.w / 2, VIEW.h * 0.42, `VITÓRIA ×${performance.toFixed(1)}  +${money(points)}`, "#ffd267");
+  return points;
 }
 
 /** Soma os abates de uma partida ao total do save (o "total" do objetivo não entra). */
@@ -99,15 +118,18 @@ function abandonRun() {
 // LOJA DO HANGAR
 // ============================================================
 
-/** Preço do próximo nível de um upgrade: base × (nível atual + 1)^exp (BALANCE.upgradeCosts). */
-function getCostUpgrade(type, currentLevel = SAVE.upgrades_level[type]) {
+/**
+ * Preço do próximo nível de um upgrade da nave selecionada: base × (nível atual + 1)^exp
+ * (BALANCE.upgradeCosts). Cada nave tem os próprios níveis (shipUpgrades em Player.js).
+ */
+function getCostUpgrade(type, currentLevel = shipUpgrades()[type]) {
   const { base, exp } = BALANCE.upgradeCosts[type];
   return Math.round(base * Math.pow(currentLevel + 1, exp));
 }
 
 /** A cadência já está no máximo (intervalo mínimo entre tiros)? */
 function fireRateMaxed() {
-  return fireIntervalFor(SAVE.upgrades_level.fireRate) <= BALANCE.minFireInterval;
+  return fireIntervalFor(shipUpgrades().fireRate) <= BALANCE.minFireInterval;
 }
 
 /** Desconta centelhas. Sem saldo, toca o som de erro e retorna false. */
@@ -121,11 +143,12 @@ function spend(cost) {
   return true;
 }
 
-/** Compra o próximo nível de um upgrade ("damage" | "fireRate" | "resistance"). */
+/** Compra o próximo nível de um upgrade ("damage" | "fireRate" | "resistance") da nave selecionada. */
 function buyUpgrade(type) {
+  if (!SAVE.ownedShips[SAVE.selectedShip]) return; // nave ainda não comprada
   if (type === "fireRate" && fireRateMaxed()) return;
   if (!spend(getCostUpgrade(type))) return;
-  SAVE.upgrades_level[type]++;
+  shipUpgrades()[type]++;
   DATA.save(SAVE);
 }
 

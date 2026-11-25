@@ -24,7 +24,7 @@ function spawnFloatingText(x, y, text, color = "#ffffff") {
 }
 
 /** Raio do tiro elétrico entre dois pontos: zigue-zague que pisca e some rápido, com faíscas na ponta. */
-function spawnBolt(x1, y1, x2, y2) {
+function spawnBolt(x1, y1, x2, y2, color = "255, 230, 109") {
   const segments = 7;
   const length = Math.hypot(x2 - x1, y2 - y1) || 1;
   const nx = -(y2 - y1) / length, ny = (x2 - x1) / length; // perpendicular
@@ -34,7 +34,7 @@ function spawnBolt(x1, y1, x2, y2) {
     const jitter = i === 0 || i === segments ? 0 : random(-1, 1) * Math.min(px(16), length * 0.18);
     points.push({ x: x1 + (x2 - x1) * t + nx * jitter, y: y1 + (y2 - y1) * t + ny * jitter });
   }
-  bolts.push({ points, life: 0.2, maxLife: 0.2 });
+  bolts.push({ points, life: 0.2, maxLife: 0.2, color });
   if (bolts.length > MAX_BOLTS) bolts.shift();
   for (let i = 0; i < 5; i++) {
     const a = random(0, Math.PI * 2), v = random(40, 140), life = random(0.15, 0.3);
@@ -65,6 +65,23 @@ function updateFx(dt) {
 
   for (const b of bolts) b.life -= dt;
   bolts = bolts.filter((b) => b.life > 0);
+
+  for (const b of blasts) b.life -= dt;
+  blasts = blasts.filter((b) => b.life > 0);
+}
+
+/** Anéis de explosão: crescem e somem (Sobrecarga). */
+function drawBlasts() {
+  if (!blasts.length) return;
+  ctx.save();
+  for (const b of blasts) {
+    const t = 1 - b.life / b.maxLife; // 0 → 1
+    ctx.globalAlpha = (1 - t) * 0.9;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.radius * (0.25 + 0.75 * t), 0, Math.PI * 2);
+    glowStroke(`rgba(${b.color}, .9)`, Math.max(2, px(3)), { glow: Math.max(8, px(14)), glowAlpha: 0.3, soft: true });
+  }
+  ctx.restore();
 }
 
 /** Partículas: quadradinhos que desbotam com a vida. */
@@ -87,7 +104,7 @@ function drawBolts() {
     ctx.globalAlpha = clamp(bolt.life / bolt.maxLife, 0, 1);
     ctx.beginPath();
     bolt.points.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-    glowStroke("rgba(255, 230, 109, .85)", Math.max(2, px(4)), { glow: Math.max(6, px(12)), glowAlpha: 0.3 });
+    glowStroke(`rgba(${bolt.color ?? "255, 230, 109"}, .85)`, Math.max(2, px(4)), { glow: Math.max(6, px(12)), glowAlpha: 0.3 });
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = Math.max(1, px(1.6));
     ctx.stroke();

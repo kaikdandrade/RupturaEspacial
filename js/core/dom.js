@@ -37,7 +37,10 @@ const prevLevelButton = $("prev-level-button");
 const nextLevelButton = $("next-level-button");
 const levelLabel = $("level-value");
 const levelLabelStatus = $("level-status");
-// Upgrades
+// Upgrades (da nave selecionada)
+const workshopShip = $("workshop-ship");
+const workshopLock = $("workshop-lock");
+const upgradeStrip = $("upgrade-strip");
 const damageButton = $("damage-button");
 const damageValue = $("damage-value");
 const damageLevel = $("damage-level");
@@ -77,7 +80,6 @@ const resultProgressLabel = $("resultProgressLabel");
 const resultKills = $("resultKills");
 const resultTotal = $("resultTotal");
 const resultBest = $("resultBest");
-const resultCoins = $("resultCoins");
 const resultProgressBar = $("resultProgressBar");
 
 // ---------------- Modal de setor concluído ----------------

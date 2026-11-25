@@ -40,7 +40,6 @@ class TouchControls {
     window.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "touch" && !this.#enabled) {
         this.#enabled = true;
-        this.#markTouch();
         this.sync();
       }
     }, { capture: true });
@@ -73,12 +72,6 @@ class TouchControls {
     // Segurar o dedo não abre menu de contexto / seleção de texto
     this.#root.addEventListener("contextmenu", (e) => e.preventDefault());
     this.#renderAuto();
-    this.#markTouch();
-  }
-
-  /** Marca o <html> com .is-touch: o CSS troca as instruções de teclado pelas de toque. */
-  #markTouch() {
-    document.documentElement.classList.toggle("is-touch", this.#enabled);
   }
 
   /** A nave deve atirar? (botão pressionado ou tiro automático ligado) */

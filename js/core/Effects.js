@@ -1,77 +1,90 @@
 "use strict";
 
 /**
- * @file Sistema de efeitos dos cards (fogo, gelo, raio, buffs do Místico).
+ * @file Sistema de efeitos dos cards (fogo, gelo, eletricidade e bônus do Místico).
  *
  *   effects.reset()                -> limpa tudo (início de cada partida)
- *   effects.update(dt)             -> avança o relógio dos efeitos
- *   effects.activate("frozen")     -> ativa um efeito (cuida das evoluções sozinho)
- *   effects.isActive("quickShot")  -> consulta
- *   effects.on("bleve", fn)        -> sinais para o jogo reagir (dano em área, toasts, sons...)
+ *   effects.update(dt)             -> avança o relógio e os ticks de dano
+ *   effects.activate("flame")      -> ativa o efeito de um card (cuida das combinações sozinho)
+ *   effects.isActive("storm")      -> consulta
+ *   effects.on("evaporation", fn)  -> sinais para o jogo reagir (game/reactions.js aplica o dano)
  *
- * Sinais: activated, evolved, flameTick, frostTick, freezeBurst, incinerate, bleve.
- * O dano em si é aplicado em main.js (o sistema só avisa quanto e quando).
+ * Elementos e combinações (o card pego + o que já está ativo):
+ *
+ *   Card    | nada ativo     | mesmo elemento | combina com
+ *   --------+----------------+----------------+------------------------------------------------
+ *   Fogo    | Chamas         | Incineração    | Gelo -> Evaporação · Elétrico -> Sobrecarga
+ *   Gelo    | Lentidão       | Congelamento   | Fogo -> Evaporação · Elétrico -> Supercondutor
+ *   Raio    | Tiro elétrico  | Tempestade     | Gelo -> Supercondutor · Fogo -> Sobrecarga
+ *
+ * Os efeitos valem igual para TODOS os asteroides (comuns e especiais); só os bosses têm exceções
+ * (desaceleram menos, não congelam e a Evaporação só tira uma parte da vida deles).
+ *
+ * Sinais: activated, evolved, burnTick, evaporation, stormTick.
  */
 class Effect extends Signals {
+  /** Durações padrão (s): básicos, avançados e bônus do jogador. */
+  static BASIC = 10;
+  static ADVANCED = 6;
+  static PLAYER = 8;
+
   /**
    * Configuração de cada efeito. Ajuste os números aqui.
    * - duration: segundos (0 = instantâneo)
-   * - evolvesTo: se pegar este efeito com ele já ativo, vira o efeito indicado
-   * - label: nome exibido no HUD
-   * - Danos: sempre uma FRAÇÃO da vida média dos asteroides do setor (setDifficulty), para o
-   *   efeito ter o mesmo peso em qualquer setor. Ex.: 0.45 = tira 45% da vida de um asteroide médio.
-   *   Nenhum efeito sozinho limpa a arena: eles enfraquecem tudo e acabam com os já feridos.
+   * - label: nome exibido no HUD e no glossário
+   * - Danos: FRAÇÃO da vida média dos asteroides do setor (setDifficulty), para o efeito ter o
+   *   mesmo peso em qualquer setor. Ex.: 0.6 = 60% da vida de um asteroide médio.
    */
   static CONFIG = {
-    // Deixa lento os asteroids (excessão de gelo). Bosses ficam só um pouco lentos.
-    // Os de fogo ficam AINDA mais lentos que os comuns e tomam dano do frio (6% por segundo).
-    frozen: {
-      label: "Lentidão", duration: 6, evolvesTo: "freeze",
-      speedMultiplier: 0.5, volcanicSpeedMultiplier: 0.35, bossSpeedMultiplier: 0.75,
-      frostTickInterval: 1, frostHpFraction: 0.06,
-    },
-    // Evolução de "frozen", congela os asteroids (os de fogo e os bosses ficam lentos em vez de congelar).
-    // Os de fogo tomam um choque ao ativar (35%) e depois dano do frio.
-    freeze: {
-      label: "Congelamento", duration: 4,
-      speedMultiplier: 0, volcanicSpeedMultiplier: 0.35, bossSpeedMultiplier: 0.5,
-      burstHpFraction: 0.35,
-      frostTickInterval: 0.75, frostHpFraction: 0.06,
-    },
-    // Queima todos os asteroides: 45% da vida média ao longo dos 6s (os de gelo tomam o dobro)
-    flame: { label: "Chamas", duration: 6, evolvesTo: "incinerate", tickInterval: 0.5, totalHpFraction: 0.45 },
-    // Evolução de "flame" (pegar fogo com fogo ativo): explosão de 60% e consome o fogo
-    incinerate: { label: "Incinerar", duration: 0, hpFraction: 0.6, consumesFlame: true },
-    // Fogo encontra gelo (ou gelo encontra fogo): explosão de 85% em todos os asteroides,
-    // consome os efeitos de fogo e gelo ativos. Asteroides de vida cheia ainda sobrevivem.
-    bleve: { label: "BLEVE", duration: 0, hpFraction: 0.85 },
-
-    // Player
-    scoreBonus: { label: "Pontos extras", duration: 8, scoreMultiplier: 1.5 },
-    quickShot: { label: "Tiro rápido", duration: 8, fireIntervalMultiplier: 0.6 },
-    speedBoost: { label: "Velocidade", duration: 8, moveSpeedMultiplier: 1.35 },
-    damageBoost: { label: "Dano extra", duration: 8, damageMultiplier: 1.5 },
-    piercingShot: { label: "Perfurante", duration: 8, pierceCount: 2 },
-    invulnerability: { label: "Invulnerável", duration: 5 },
-    // Card do asteroide Elétrico: cada tiro que acerta solta um raio que pula de asteroide
-    // em asteroide (dano em cascata). Cada pulo causa chainFalloff do dano do pulo anterior.
-    // Com frio ativo (frozen/freeze) o gelo conduz melhor: +iceBonusJumps pulos.
+    // ---------------- Básicos (um card) ----------------
+    // Gelo: todos os asteroides na metade da velocidade (bosses só um pouco)
+    frozen: { label: "Lentidão", tier: "basic", duration: Effect.BASIC, speedMultiplier: 0.5, bossSpeedMultiplier: 0.75 },
+    // Fogo: todos os asteroides queimam (60% da vida média ao longo dos 10 s)
+    flame: { label: "Chamas", tier: "basic", duration: Effect.BASIC, tickInterval: 0.5, totalHpFraction: 0.6 },
+    // Raio: cada tiro que acerta solta um raio que pula para os vizinhos (falloff = força a cada pulo)
     electricShot: {
-      label: "Tiro elétrico", duration: 8,
-      chainJumps: 3, chainRange: 170, chainFalloff: 0.6, iceBonusJumps: 2,
+      label: "Tiro elétrico", tier: "basic", duration: Effect.BASIC,
+      chainJumps: 3, chainRange: 170, chainFalloff: 0.6,
     },
-  };
 
-  /** Asteroides de gelo levam este multiplicador de dano dos efeitos de fogo. */
-  static ICE_FIRE_DAMAGE_MULTIPLIER = 2;
+    // ---------------- Avançados (dois cards) ----------------
+    // Gelo + gelo: tudo congela (bosses ficam na metade da velocidade)
+    freeze: { label: "Congelamento", tier: "advanced", duration: Effect.ADVANCED, speedMultiplier: 0, bossSpeedMultiplier: 0.5 },
+    // Fogo + fogo: o fogo vira um dano contínuo e rápido (ticks curtos), bem mais forte que Chamas
+    incinerate: { label: "Incineração", tier: "advanced", duration: Effect.ADVANCED, tickInterval: 0.1, totalHpFraction: 1.1 },
+    // Raio + raio: além dos tiros elétricos, a nave dá choques em cadeia nos asteroides próximos
+    storm: {
+      label: "Tempestade", tier: "advanced", duration: Effect.ADVANCED,
+      range: 230, interval: 0.4, hpFraction: 0.22, jumps: 3,
+    },
+    // Raio + gelo: os asteroides gelados conduzem o raio (mais dano, mais alcance e mais pulos)
+    superconductor: {
+      label: "Supercondutor", tier: "advanced", duration: Effect.ADVANCED,
+      damageMultiplier: 1.8, rangeMultiplier: 1.7, bonusJumps: 3,
+    },
+    // Raio + fogo: quem morre em chamas explode e solta raios nos vizinhos
+    overload: {
+      label: "Sobrecarga", tier: "advanced", duration: Effect.ADVANCED,
+      blastRange: 150, blastHpFraction: 0.8, bolts: 3,
+    },
+    // Fogo + gelo: instantâneo. Destrói todos os asteroides; bosses perdem bossHpFraction da vida máxima.
+    evaporation: { label: "Evaporação", tier: "advanced", duration: 0, bossHpFraction: 0.12 },
+
+    // ---------------- Bônus do jogador (card do Místico) ----------------
+    scoreBonus: { label: "Pontos extras", tier: "player", duration: Effect.PLAYER, scoreMultiplier: 1.5 },
+    quickShot: { label: "Tiro rápido", tier: "player", duration: Effect.PLAYER, fireIntervalMultiplier: 0.6 },
+    speedBoost: { label: "Velocidade", tier: "player", duration: Effect.PLAYER, moveSpeedMultiplier: 1.35 },
+    damageBoost: { label: "Dano extra", tier: "player", duration: Effect.PLAYER, damageMultiplier: 1.5 },
+    piercingShot: { label: "Perfurante", tier: "player", duration: Effect.PLAYER, pierceCount: 2 },
+    invulnerability: { label: "Invulnerável", tier: "player", duration: Effect.PLAYER },
+  };
 
   #time = 0;              // relógio interno (s): só anda durante a partida
   #until = {};            // nome -> instante do relógio em que o efeito acaba (0 = inativo)
-  #flameTickTimer = 0;
-  #frostTickTimer = 0;
+  #burnTimer = 0;
+  #burnCarry = 0;         // dano fracionário acumulado dos ticks (vira inteiro ao passar de 1)
+  #stormTimer = 0;
   #levelHp = 2;           // vida média dos asteroides do setor atual (base dos danos)
-  #flameCarry = 0;        // dano fracionário acumulado dos ticks (vira inteiro ao passar de 1)
-  #frostCarry = 0;
   #freezeBlocked = false; // true enquanto houver um boss Gravitacional vivo
 
   constructor() {
@@ -86,110 +99,124 @@ class Effect extends Signals {
   /** Desliga todos os efeitos (início de cada partida). */
   reset() {
     this.#time = 0;
-    this.#flameTickTimer = 0;
-    this.#frostTickTimer = 0;
-    this.#flameCarry = 0;
-    this.#frostCarry = 0;
+    this.#burnTimer = 0;
+    this.#burnCarry = 0;
+    this.#stormTimer = 0;
     this.#until = Object.fromEntries(Object.keys(Effect.CONFIG).map((name) => [name, 0]));
   }
 
-  /** Avança o relógio e dispara os ticks de dano do fogo e do frio. */
+  /** Avança o relógio e dispara os ticks de fogo e os choques da Tempestade. */
   update(dt) {
     if (!(dt > 0)) return;
     this.#time += dt;
 
-    // Na presença do Gravitacional nada congela: o freeze vira, no máximo, lentidão
+    // Na presença do Gravitacional nada congela: o congelamento vira, no máximo, lentidão
     this.#freezeBlocked = typeof asteroids !== "undefined"
       && asteroids.some((a) => a.type === "gravity" && a.boss && !a.dead);
 
-    // Ticks do "flame"
-    if (this.isActive("flame")) {
-      const { tickInterval, totalHpFraction, duration } = Effect.CONFIG.flame;
-      const perTick = this.levelDamage(totalHpFraction * tickInterval / duration);
-      this.#flameTickTimer += dt;
-      while (this.#flameTickTimer >= tickInterval) {
-        this.#flameTickTimer -= tickInterval;
-        this.#flameCarry += perTick;
-        const damage = Math.floor(this.#flameCarry);
-        this.#flameCarry -= damage;
-        if (damage > 0) this.emit("flameTick", { damage });
+    // Fogo: a Incineração (ticks curtos) tem prioridade sobre as Chamas
+    const fire = this.isActive("incinerate") ? Effect.CONFIG.incinerate
+      : this.isActive("flame") ? Effect.CONFIG.flame : null;
+    if (fire) {
+      const perTick = this.levelDamage(fire.totalHpFraction * fire.tickInterval / fire.duration);
+      this.#burnTimer += dt;
+      while (this.#burnTimer >= fire.tickInterval) {
+        this.#burnTimer -= fire.tickInterval;
+        this.#burnCarry += perTick;
+        const damage = Math.floor(this.#burnCarry);
+        this.#burnCarry -= damage;
+        if (damage > 0) this.emit("burnTick", { damage });
       }
     } else {
-      this.#flameTickTimer = 0;
-      this.#flameCarry = 0;
+      this.#burnTimer = 0;
+      this.#burnCarry = 0;
     }
 
-    // Ticks do frio (frozen/freeze) nos asteroides de fogo
-    const frost = this.isActive("freeze") ? Effect.CONFIG.freeze
-      : this.isActive("frozen") ? Effect.CONFIG.frozen : null;
-    if (frost) {
-      this.#frostTickTimer += dt;
-      while (this.#frostTickTimer >= frost.frostTickInterval) {
-        this.#frostTickTimer -= frost.frostTickInterval;
-        this.#frostCarry += this.levelDamage(frost.frostHpFraction);
-        const damage = Math.floor(this.#frostCarry);
-        this.#frostCarry -= damage;
-        if (damage > 0) this.emit("frostTick", { damage });
+    // Tempestade: um choque em cadeia a partir da nave a cada `interval`
+    if (this.isActive("storm")) {
+      const storm = Effect.CONFIG.storm;
+      this.#stormTimer += dt;
+      if (this.#stormTimer >= storm.interval) {
+        this.#stormTimer -= storm.interval;
+        this.emit("stormTick", { damage: this.instantDamage(storm.hpFraction), range: storm.range, jumps: storm.jumps });
       }
     } else {
-      this.#frostTickTimer = 0;
-      this.#frostCarry = 0;
+      this.#stormTimer = 0;
     }
-
   }
 
   // ------------------------------------------------------------------
   // Ativação
   // ------------------------------------------------------------------
 
+  /** Elementos ativos agora (básico ou avançado). */
+  get fireActive() { return this.isActive("flame") || this.isActive("incinerate"); }
+  get iceActive() { return this.isActive("frozen") || this.isActive("freeze"); }
+  get electricActive() { return this.isActive("electricShot") || this.isActive("storm"); }
+
   /**
-   * Ativa um efeito. Se ele já estiver ativo e tiver evolução, evolui.
-   * Pegar o mesmo efeito de novo (sem evolução) renova a duração.
-   * Retorna o nome do efeito que de fato foi aplicado.
+   * Ativa o efeito de um card. Os cards elementais (flame, frozen, electricShot) combinam com o
+   * que já estiver ativo (ver a tabela no topo do arquivo); os do Místico só ligam/renovam.
+   * Retorna o nome do efeito principal que foi aplicado.
    */
   activate(name) {
     const config = Effect.CONFIG[name];
     if (!config) throw new Error(`Efeito desconhecido: ${name}`);
 
-    // Evolução (frozen -> freeze, flame -> incinerate)
-    if (config.evolvesTo && this.isActive(name)) {
-      this.#until[name] = 0; // o efeito base é substituído pela evolução
-      this.emit("evolved", { from: name, to: config.evolvesTo });
-      return this.activate(config.evolvesTo);
+    if (name === "flame") return this.#pickElement("fire");
+    if (name === "frozen") return this.#pickElement("ice");
+    if (name === "electricShot") return this.#pickElement("electric");
+    return this.#start(name);
+  }
+
+  /** Regras de combinação ao pegar um card elemental. */
+  #pickElement(element) {
+    const fire = this.fireActive;
+    const ice = this.iceActive;
+    const electric = this.electricActive;
+
+    // Fogo + gelo (em qualquer ordem): Evaporação, que consome o fogo e o gelo
+    if ((element === "fire" && ice) || (element === "ice" && fire)) {
+      for (const n of ["flame", "incinerate", "frozen", "freeze", "superconductor", "overload"]) this.#until[n] = 0;
+      this.emit("evolved", { to: "evaporation" });
+      this.emit("evaporation", { bossHpFraction: Effect.CONFIG.evaporation.bossHpFraction });
+      this.emit("activated", { name: "evaporation", duration: 0 });
+      return "evaporation";
     }
 
-    // Com "freeze" ativo, um novo "frozen" só renova o congelamento
-    if (name === "frozen" && this.isActive("freeze")) return this.activate("freeze");
-
-    // BLEVE: fogo encontra gelo (ou gelo encontra fogo)
-    const iceActive = this.isActive("frozen") || this.isActive("freeze");
-    if ((name === "flame" && iceActive) || (name === "frozen" && this.isActive("flame"))) {
-      this.emit("evolved", { from: name, to: "bleve" });
-      return this.activate("bleve");
+    // O mesmo elemento de novo: vira (ou renova) a versão avançada, que substitui a básica
+    const ladder = { fire: ["flame", "incinerate"], ice: ["frozen", "freeze"], electric: ["electricShot", "storm"] };
+    const [basic, advanced] = ladder[element];
+    let applied;
+    if (this.isActive(basic) || this.isActive(advanced)) {
+      this.#until[basic] = 0;
+      if (!this.isActive(advanced)) this.emit("evolved", { to: advanced });
+      applied = this.#start(advanced);
+    } else {
+      applied = this.#start(basic);
     }
 
-    // Efeitos instantâneos
-    if (config.duration <= 0) {
-      if (name === "incinerate") {
-        if (config.consumesFlame) this.#until.flame = 0;
-        this.emit("incinerate", { damage: this.instantDamage(config.hpFraction) });
-      }
-      if (name === "bleve") {
-        this.#until.flame = 0;
-        this.#until.frozen = 0;
-        this.#until.freeze = 0;
-        this.emit("bleve", { damage: this.instantDamage(config.hpFraction) });
-      }
-      this.emit("activated", { name, duration: 0 });
-      return name;
-    }
+    // Combinações com a eletricidade (o efeito pego continua valendo junto)
+    if ((element === "electric" && ice) || (element === "ice" && electric)) this.#combo("superconductor");
+    if ((element === "electric" && fire) || (element === "fire" && electric)) this.#combo("overload");
+    return applied;
+  }
 
+  /** Liga (ou renova) uma combinação e avisa o HUD na primeira vez. */
+  #combo(name) {
+    if (!this.isActive(name)) this.emit("evolved", { to: name });
+    this.#start(name);
+  }
+
+  /** Liga um efeito com duração (ou renova, se já estiver ativo). */
+  #start(name) {
+    const config = Effect.CONFIG[name];
     const refreshed = this.isActive(name);
     this.#until[name] = Math.max(this.#until[name], this.#time + config.duration);
-    if (name === "flame" && !refreshed) this.#flameTickTimer = 0;
-    // Choque de congelamento nos asteroides de fogo (só quando o freeze começa, não ao renovar)
-    if (name === "freeze" && !refreshed) this.emit("freezeBurst", { damage: this.instantDamage(config.burstHpFraction) });
-    if (!refreshed) this.emit("activated", { name, duration: config.duration });
+    if (!refreshed) {
+      if (name === "storm") this.#stormTimer = Effect.CONFIG.storm.interval; // primeiro choque já
+      this.emit("activated", { name, duration: config.duration });
+    }
     return name;
   }
 
@@ -254,53 +281,25 @@ class Effect extends Signals {
     return this.#freezeBlocked && multiplier <= 0 ? Effect.CONFIG.frozen.speedMultiplier : multiplier;
   }
 
-  /**
-   * Multiplicador de velocidade de um asteroide, com as exceções de cada efeito
-   * (gelo não desacelera Glaciais, Vulcânicos sofrem mais, bosses sofrem menos).
-   */
+  /** Multiplicador de velocidade de um asteroide (igual para todos; bosses sofrem menos). */
   asteroidSpeedMultiplier(asteroid) {
     if (!asteroid) return 1;
     const { frozen, freeze } = Effect.CONFIG;
-
-    if (this.isActive("freeze")) {
-      if (asteroid.boss) return freeze.bossSpeedMultiplier;
-      if (asteroid.type === "volcanic") return freeze.volcanicSpeedMultiplier;
-      return this.#noFreeze(freeze.speedMultiplier);
-    }
-
-    if (this.isActive("frozen")) {
-      if (asteroid.boss) return frozen.bossSpeedMultiplier;
-      if (asteroid.type === "volcanic") return frozen.volcanicSpeedMultiplier;
-      if (asteroid.type === "frozen") return 1;
-      return frozen.speedMultiplier;
-    }
-
+    if (this.isActive("freeze")) return asteroid.boss ? freeze.bossSpeedMultiplier : this.#noFreeze(freeze.speedMultiplier);
+    if (this.isActive("frozen")) return asteroid.boss ? frozen.bossSpeedMultiplier : frozen.speedMultiplier;
     return 1;
   }
 
-  /** Velocidade dos espinhos do Espinhoso: frozen deixa lento, freeze congela no lugar. */
+  /** Velocidade dos projéteis que sofrem efeitos: Lentidão deixa lento, Congelamento para. */
   projectileSpeedMultiplier() {
     if (this.isActive("freeze")) return this.#noFreeze(0);
     if (this.isActive("frozen")) return 0.5;
     return 1;
   }
 
-  /** Se o fogo (flame / incinerate) afeta este asteroide. Asteroides de fogo são imunes. */
+  /** O fogo (Chamas / Incineração) está queimando este asteroide? Vale para todos. */
   burnAffects(asteroid) {
-    return !!asteroid && !asteroid.dead && asteroid.type !== "volcanic";
-  }
-
-  /** Dano final de um efeito de fogo (flameTick / incinerate) num asteroide. Gelo leva extra. */
-  fireDamage(baseDamage, asteroid) {
-    if (!this.burnAffects(asteroid)) return 0;
-    return asteroid.type === "frozen"
-      ? Math.ceil(baseDamage * Effect.ICE_FIRE_DAMAGE_MULTIPLIER)
-      : baseDamage;
-  }
-
-  /** Se o frio (frostTick / freezeBurst) afeta este asteroide: só os de fogo. */
-  frostAffects(asteroid) {
-    return !!asteroid && !asteroid.dead && asteroid.type === "volcanic";
+    return !!asteroid && !asteroid.dead && this.fireActive;
   }
 
   /** Multiplicador do intervalo entre tiros (< 1 = atira mais rápido). */
@@ -335,16 +334,29 @@ class Effect extends Signals {
   }
 
   /**
-   * Raio em cascata do tiro elétrico. null se o efeito não estiver ativo.
+   * Raio em cascata do tiro elétrico (Tiro elétrico ou Tempestade). null se não houver.
+   * Com o Supercondutor, o raio alcança mais longe, pula mais vezes e causa mais dano.
    * range está em pixels da tela de referência (o jogo multiplica pela escala).
+   * @returns {{ jumps: number, range: number, falloff: number, damageMultiplier: number } | null}
    */
   chainLightning() {
-    if (!this.isActive("electricShot")) return null;
+    if (!this.electricActive) return null;
     const c = Effect.CONFIG.electricShot;
-    const ice = this.isActive("frozen") || this.isActive("freeze");
-    return { jumps: c.chainJumps + (ice ? c.iceBonusJumps : 0), range: c.chainRange, falloff: c.chainFalloff };
+    const sc = this.isActive("superconductor") ? Effect.CONFIG.superconductor : null;
+    return {
+      jumps: c.chainJumps + (sc ? sc.bonusJumps : 0),
+      range: c.chainRange * (sc ? sc.rangeMultiplier : 1),
+      falloff: c.chainFalloff,
+      damageMultiplier: sc ? sc.damageMultiplier : 1,
+    };
   }
+
+  /** A Sobrecarga está armada neste asteroide? (está queimando e não é boss) */
+  overloadArmed(asteroid) {
+    return this.isActive("overload") && this.fireActive && !!asteroid && !asteroid.boss;
+  }
+
 }
 
 /** Instância única do sistema de efeitos. */
-const effects = new Effect();
+const effects = new Effect();

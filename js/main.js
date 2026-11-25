@@ -9,7 +9,7 @@
 // SINAIS DO JOGO
 // ============================================================
 
-// Nave destruída: fim de partida (perdendo, leva só uma parte das centelhas)
+// Nave destruída: fim de partida (perdendo, não ganha centelhas)
 player.on("death", () => {
   if (state.mode === "gameover") return;
   state.mode = "gameover";
@@ -19,40 +19,7 @@ player.on("death", () => {
   showModal("gameover");
 });
 
-// Avisos no HUD: efeitos instantâneos (Incinerar, BLEVE) e o gelo virando congelamento
-effects.on("activated", ({ name, duration }) => {
-  if (duration === 0) showEffectToast(name, `${Effect.CONFIG[name].label}!`);
-});
-effects.on("evolved", ({ to }) => {
-  if (to === "freeze") showEffectToast("freeze", `${Effect.CONFIG.freeze.label}!`);
-});
-
-// Dano dos efeitos (o Effects só avisa quanto; aqui ele é aplicado nos asteroides)
-const aliveAsteroids = () => asteroids.filter((a) => !a.dead);
-/** Fogo: todos menos os Vulcânicos (Glaciais tomam o dobro). */
-const fireHit = ({ damage }) => aliveAsteroids().forEach((a) => {
-  const d = effects.fireDamage(damage, a);
-  if (d) a.hit(d, "burn");
-});
-/** Frio: só os Vulcânicos. */
-const frostHit = ({ damage }) => aliveAsteroids()
-  .filter((a) => effects.frostAffects(a))
-  .forEach((a) => a.hit(damage, "burn"));
-
-effects.on("flameTick", fireHit);
-effects.on("incinerate", fireHit);
-effects.on("frostTick", frostHit);
-effects.on("freezeBurst", frostHit);
-effects.on("bleve", ({ damage }) => aliveAsteroids().forEach((a) => a.hit(damage, "burn")));
-
-// Clarões dos efeitos instantâneos nos asteroides atingidos
-effects.on("incinerate", () => asteroids.forEach((a) => effects.burnAffects(a) && a.flashEffect("incinerate")));
-effects.on("freezeBurst", () => asteroids.forEach((a) => effects.frostAffects(a) && a.flashEffect("freezeBurst")));
-effects.on("bleve", () => {
-  asteroids.forEach((a) => a.flashEffect("bleve"));
-  // O BLEVE quebra os espinhos do Espinhoso que estiverem na tela
-  asteroids.forEach((a) => a.projectiles?.forEach((p) => p.affectedByEffects && p.shatter()));
-});
+// Efeitos elementais (dano, explosões, avisos no HUD): ver js/game/reactions.js
 
 // ============================================================
 // TELA
@@ -110,7 +77,9 @@ function playGame(levelNumber = SAVE.selectedLevel) {
   asteroids = [];
   pickups = [];
   bolts = [];
+  blasts = [];
   particles = [];
+  Reactions.reset();
   floatingTexts = [];
   clearEffectsHud();
   level.set(levelNumber);
@@ -134,6 +103,7 @@ function startEncounter() {
 function winLevel() {
   if (state.mode === "complete") return;
   state.mode = "complete";
+  if (state.levelConfig.isLevelBoss) awardBossVictory(); // boss paga pelo desempenho
   const result = finishRun(true);
   music.jingle(result.newRecord ? "record" : "win");
   updateCompletedUI(result);

@@ -60,7 +60,7 @@ class Bullet {
   }
 
   draw() {
-    const entry = Bullet.sprite(this.electric);
+    const entry = Bullet.sprite(!!this.electric);
     // Do pé (y + 15) à ponta (y - 7), inclinado pelo vx dos canos laterais
     const dx = -this.vx * 0.008;
     const cx = this.x + dx / 2;
@@ -77,9 +77,19 @@ class Bullet {
   }
 }
 
-/** Dano base do tiro: 1 + nível do upgrade de dano. */
+/**
+ * Níveis de melhoria de uma nave (cada nave tem os seus; a nova começa do zero).
+ * @param {number} [index] índice em SHIPS (padrão: a nave selecionada)
+ * @returns {{ damage: number, fireRate: number, resistance: number }}
+ */
+function shipUpgrades(index = SAVE.selectedShip) {
+  SAVE.shipUpgrades ??= [];
+  return (SAVE.shipUpgrades[index] ??= { damage: 0, fireRate: 0, resistance: 0 });
+}
+
+/** Dano base do tiro da nave selecionada: 1 + nível do upgrade de dano. */
 function playerBaseDamage() {
-  return 1 + SAVE.upgrades_level.damage * BALANCE.damagePerLevel;
+  return 1 + shipUpgrades().damage * BALANCE.damagePerLevel;
 }
 
 /**
@@ -110,12 +120,12 @@ class Player extends Signals {
     this.vy = 0;
     this.applyScale();
     this.image = loadImage(ASSETS.ships[this.#skinIndex]);
-    this.resistance = SAVE.upgrades_level.resistance * BALANCE.resistancePerLevel;
+    this.resistance = shipUpgrades().resistance * BALANCE.resistancePerLevel;
     this.maxResistance = this.resistance;
     this.shieldProgress = 0; // 0..1: animação do escudo aparecendo/sumindo
     this.acceleration = 750;
     this.drag = 2;
-    this.fireRate = fireIntervalFor(SAVE.upgrades_level.fireRate);
+    this.fireRate = fireIntervalFor(shipUpgrades().fireRate);
     this.hitbox = new Hitbox(this, this.radius);
     this.updateHitbox();
 
@@ -333,7 +343,23 @@ class Player extends Signals {
     if (state.mode != "launching") {
       this.drawShield();
       if (effects.isInvulnerable()) this.drawInvulnerability();
+      if (effects.isActive("storm")) this.drawStorm();
     }
+    ctx.restore();
+  }
+
+  /** Tempestade: anel elétrico tracejado girando no alcance dos choques. */
+  drawStorm() {
+    const t = performance.now() / 1000;
+    const range = px(Effect.CONFIG.storm.range);
+    const fade = Math.min(1, effects.remaining("storm") / 0.8); // some suave no fim
+    ctx.save();
+    ctx.globalAlpha *= 0.35 * fade;
+    ctx.setLineDash([px(10), px(14)]);
+    ctx.lineDashOffset = -t * 60;
+    ctx.beginPath();
+    ctx.arc(0, 0, range, 0, Math.PI * 2);
+    glowStroke("rgba(200, 170, 255, .9)", 2, { glow: 8, glowAlpha: 0.3, soft: true });
     ctx.restore();
   }
 
@@ -611,8 +637,8 @@ class Player extends Signals {
 
   /** Lê os upgrades do save (resistência e cadência). */
   applyUpgrades() {
-    this.maxResistance = SAVE.upgrades_level.resistance * BALANCE.resistancePerLevel;
-    this.fireRate = fireIntervalFor(SAVE.upgrades_level.fireRate);
+    this.maxResistance = shipUpgrades().resistance * BALANCE.resistancePerLevel;
+    this.fireRate = fireIntervalFor(shipUpgrades().fireRate);
   }
 
   /** Prepara a nave para uma nova partida (upgrades comprados no hangar já valem). */
@@ -633,7 +659,7 @@ class Player extends Signals {
     const fireInterval = this.fireRate * effects.fireIntervalMultiplier();
     if (now - this.#lastShotTime < fireInterval) return;
     this.#lastShotTime = now;
-    Sfx.shoot(this.#skinIndex, effects.isActive("electricShot"));
+    Sfx.shoot(this.#skinIndex, effects.electricActive);
     for (const muzzle of this.#muzzles) {
       const { x, y } = this.muzzlePosition(muzzle);
       this.#bullets.push(new Bullet(x, y, muzzle.vx ?? 0));

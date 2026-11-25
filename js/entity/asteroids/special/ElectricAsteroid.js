@@ -1,8 +1,9 @@
 "use strict";
 
 /**
- * @file Asteroide Elétrico: ao ser destruído dropa o card de raio (efeito "electricShot":
- * cada tiro que acerta solta um raio que pula para os asteroides próximos, com dano em cascata).
+ * @file Asteroide Elétrico: ao ser destruído dropa o card de raio (efeito "electricShot": cada
+ * tiro que acerta solta um raio que pula para os vizinhos). Combinações (Tempestade, Supercondutor,
+ * Sobrecarga): Effects.js.
  */
 class ElectricAsteroid extends Asteroid {
   /** Duração (s) de cada faísca na borda. */

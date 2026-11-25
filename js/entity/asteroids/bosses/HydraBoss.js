@@ -1,19 +1,18 @@
 "use strict";
 
 /**
- * @file Boss Hidra: cospe ácido (AcidSpit) na nave. A cada vez que um pedaço chega à metade
- * da PRÓPRIA vida, ele se divide em dois (até 4 pedaços menores e mais rápidos).
- * A vida total para matar todos os pedaços é a vida da Hidra inteira.
+ * @file Boss Hidra: cospe ácido (AcidSpit) na nave. Quando a vida de um pedaço ZERA, em vez de
+ * morrer ele se divide em dois, cada um com vida cheia (metade da vida máxima do pedaço).
+ * São 4 estágios (1 → 2 → 4 → 8 pedaços) e cada estágio soma a vida da Hidra inteira.
  */
 class HydraBoss extends BossAsteroid {
   /**
-   * A cada vez que um pedaço chega à metade da PRÓPRIA vida, ele se divide em dois
-   * (cada um com metade da vida que sobrava). Geração 0 = inteira, 1 = metades,
-   * 2 = quartos (não se dividem mais). A vida total para matar tudo é a vida da Hidra inteira.
+   * Geração 0 = inteira, 1 = metades, 2 = quartos, 3 = oitavos (estes morrem de verdade).
+   * Cada pedaço que zera a vida vira dois com vida cheia = metade da vida máxima dele.
    */
-  static MAX_GENERATION = 2;
-  static SIZE_FACTOR = 0.74;   // cada divisão fica com 74% do tamanho...
-  static SPEED_FACTOR = 1.25;  // ...e 25% mais rápida
+  static MAX_GENERATION = 3;
+  static SIZE_FACTOR = 0.76;   // cada divisão fica com 76% do tamanho...
+  static SPEED_FACTOR = 1.18;  // ...e 18% mais rápida
   static SPLIT_PUSH = 220;     // empurrão que separa as metades (px na tela de referência)
 
   constructor(config) {
@@ -33,15 +32,29 @@ class HydraBoss extends BossAsteroid {
     return base + this.generation * 0.45;
   }
 
-  /** Chegou à metade da própria vida (e ainda pode dividir): divide. */
-  onDamaged() {
-    if (this.generation >= HydraBoss.MAX_GENERATION) return;
-    if (this.hp > 0 && this.hp <= this.maxHp / 2) this.split();
+  /** Vida total da Hidra (todos os estágios), usada na barra de progresso da luta. */
+  get totalHp() {
+    return this.maxHp * (HydraBoss.MAX_GENERATION - this.generation + 1);
+  }
+
+  /** Vida que ainda falta tirar deste pedaço e de todos os que vão nascer dele. */
+  remainingHp() {
+    return this.hp + this.maxHp * (HydraBoss.MAX_GENERATION - this.generation);
+  }
+
+  /** Vida zerada pelo jogador: se ainda pode dividir, divide em vez de morrer. */
+  destroy(reason = "shot") {
+    const playerKill = reason === "shot" || reason === "burn";
+    if (!this.dead && playerKill && this.generation < HydraBoss.MAX_GENERATION) {
+      this.split();
+      return;
+    }
+    super.destroy(reason);
   }
 
   /** Divide em dois: este pedaço encolhe e uma "gêmea" nasce indo para o lado oposto. */
   split() {
-    const half = Math.max(1, Math.ceil(this.hp / 2));
+    const half = Math.max(1, Math.ceil(this.maxHp / 2));
     const generation = this.generation + 1;
     const size = this.size * HydraBoss.SIZE_FACTOR;
     const angle = random(0, Math.PI * 2);

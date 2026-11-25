@@ -41,8 +41,10 @@ let pickups = [];
 let particles = [];
 /** Textos que sobem e somem (combo, nomes dos especiais...): { x, y, text, color, life, maxLife } */
 let floatingTexts = [];
-/** Raios do tiro elétrico (só visual): { points, life, maxLife } */
+/** Raios elétricos (só visual): { points, life, maxLife, color } */
 let bolts = [];
+/** Anéis de explosão (Sobrecarga, só visual): { x, y, radius, life, maxLife, color } */
+let blasts = [];
 /** Estrelas do fundo: { x, y, size, speed, alpha } */
 let stars = [];
 
