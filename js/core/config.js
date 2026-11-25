@@ -42,7 +42,7 @@ const WORLD_REF = { w: 1280, h: 900, narrowW: 560, min: 0.55, max: 1.3 };
 const SPECIALS_ASTEROIDS = ["volcanic", "frozen", "mystic", "electric", "golden"];
 
 /** Peso de cada especial no sorteio (o dourado aparece menos: ele só dá pontos). */
-const SPECIAL_WEIGHTS = { volcanic: 1, frozen: 1, mystic: 1, electric: 1, golden: 0.5 };
+const SPECIAL_WEIGHTS = { volcanic: 1, frozen: 1, mystic: 0.75, electric: 1, golden: 0.5 };
 
 /**
  * Nome e cor de cada tipo PARA O JOGADOR (o "type" em inglês é só do código).
