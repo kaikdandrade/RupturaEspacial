@@ -97,7 +97,7 @@
           </div>
         </div>
 
-        <p id="workshop-lock" class="workshop-lock" hidden>Compre esta nave para liberar as melhorias dela. Cada nave começa do nível inicial.</p>
+        <p id="workshop-lock" class="workshop-lock" hidden>Compre esta nave para liberar as melhorias dela. <strong id="workshop-lock-ship">Nave</strong></p>
 
         <div id="upgrade-strip" class="upgrade-strip" aria-label="Melhorias da nave selecionada">
           <!-- DANO -->
@@ -222,9 +222,8 @@
     <dialog id="pause" class="modal" aria-label="Jogo pausado">
       <header class="modal-header">
         <h2 class="title">Jogo Pausado</h2>
-        <button id="pauseGlossaryButton" class="glossary-link" type="button" title="Glossário: áudio, controles, efeitos e ameaças">
+        <button id="pauseGlossaryButton" class="glossary-link" type="button" aria-label="Glossário" title="Glossário: áudio, controles, efeitos e ameaças">
           <img src="assets/icons/help.png" alt="" />
-          <span>Glossário</span>
         </button>
       </header>
 
@@ -250,7 +249,7 @@
             </div>
 
             <div class="stat">
-              <svg class="stat-icon stat-icon--svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
+              <img class="stat-icon" src="assets/icons/time.png" alt="" />
               <div>
                 <span>Tempo</span>
                 <strong id="pauseTime">00:00</strong>
@@ -655,10 +654,14 @@
             <span class="key-separator">ou</span>
             <kbd class="key key--wide">ENTER</kbd>
             <span class="key-separator">ou</span>
-            <kbd class="key key--wide key--mouse">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="6" /><path d="M12 3v6M6 9h6" /></svg>
-              SEGURAR CLIQUE
+            <kbd class="key key--mouse" title="Botão esquerdo do mouse">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path class="mouse-left" d="M12 3.5a5.5 5.5 0 0 0-5.5 5.5v1h5.5z" />
+                <rect x="6.5" y="3.5" width="11" height="17" rx="5.5" />
+                <path d="M12 3.5V10M6.5 10h11" />
+              </svg>
             </kbd>
+            <span class="key-hint">(segurar)</span>
           </div>
         </div>
 

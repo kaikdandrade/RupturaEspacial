@@ -178,7 +178,9 @@ const BALANCE = {
     // setor 5 ≈ 8 · 10 ≈ 11 · 20 ≈ 16 · 40 ≈ 28 · 100 ≈ 71 · 200 ≈ 160
     contact: { base: 5, perLevel: 0.9, curve: 0.0035, activeRef: 4, minFraction: 0.5 },
     // Chance de especial: começa em `start` no setor LEVEL_UNLOCK_SPECIALS e sobe até `max`
-    special: { start: 0.1, perLevel: 0.003, max: 0.18 },
+    // followUp: logo depois de um especial, a chance do PRÓXIMO também ser especial (dupla).
+    // Depois de dois seguidos a sequência zera: o terceiro é sempre comum.
+    special: { start: 0.1, perLevel: 0.003, max: 0.18, followUp: 0.45 },
   },
 
   // ---------------- Pontuação ----------------

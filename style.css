@@ -1573,34 +1573,26 @@
   filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.4));
 }
 
-/* Relógio (não há PNG): desenhado em SVG no mesmo estilo neon */
-.stat-icon--svg {
-  padding: 4px;
-  fill: rgb(112 235 255 / 0.12);
-  stroke: var(--cyan);
-  stroke-width: 2;
-  stroke-linecap: round;
-  filter: drop-shadow(0 0 6px rgb(112 235 255 / 0.5));
-}
-
-/* Atalho para o glossário no cabeçalho da pausa */
+/* Atalho para o glossário no cabeçalho da pausa: só o ícone "?" (mesmo tamanho do X dos modais) */
 .glossary-link {
   flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px 6px 6px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 4px;
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: var(--panel);
-  color: var(--text);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
 
-  img { width: 28px; height: 28px; object-fit: contain; }
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.4));
+  }
 
-  &:not(:disabled):hover { border-color: var(--cyan); color: var(--cyan); }
+  &:not(:disabled):hover { border-color: var(--cyan); }
 }
 
 .pause-section {
@@ -1781,20 +1773,33 @@
   .volume-row--switch { grid-template-columns: 1fr auto auto; }
 }
 
-/* Ícone de mouse dentro da tecla "SEGURAR CLIQUE" */
+/* Mouse: tecla com o desenho do mouse (botão esquerdo aceso) + dica "segurar" */
 .key.key--mouse {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  width: 1.9rem;
+  min-width: 0;
+  padding: 3px;
 
   svg {
-    width: 14px;
-    height: 14px;
+    width: 100%;
+    height: 100%;
     fill: none;
     stroke: currentColor;
-    stroke-width: 2;
+    stroke-width: 1.6;
     stroke-linecap: round;
+    stroke-linejoin: round;
   }
+
+  .mouse-left {
+    fill: var(--cyan);
+    stroke: none;
+    filter: drop-shadow(0 0 3px rgb(112 235 255 / 0.8));
+  }
+}
+
+.key-hint {
+  color: var(--muted);
+  font-size: max(var(--fs-min), 0.7rem);
+  font-style: italic;
 }
 
 .control-hint {

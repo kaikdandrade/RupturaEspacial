@@ -100,6 +100,7 @@ function updateMenuUI() {
   const levels = shipUpgrades();
   setText(workshopShip, ship.name.toUpperCase());
   workshopLock.hidden = owned;
+  setText(workshopLockShip, ship.name);
   upgradeStrip.classList.toggle("is-locked", !owned);
   damageButton.disabled = !owned || SAVE.coins < getCostUpgrade("damage");
   setText(damageValue, playerBaseDamage());

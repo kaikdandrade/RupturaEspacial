@@ -40,6 +40,7 @@ const levelLabelStatus = $("level-status");
 // Upgrades (da nave selecionada)
 const workshopShip = $("workshop-ship");
 const workshopLock = $("workshop-lock");
+const workshopLockShip = $("workshop-lock-ship");
 const upgradeStrip = $("upgrade-strip");
 const damageButton = $("damage-button");
 const damageValue = $("damage-value");

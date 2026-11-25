@@ -93,7 +93,7 @@ class Level {
     const config = this.#defConfig();
 
     Object.assign(state, {
-      playing: { time: 0, score: 0, combo: { count: 0, timer: 0 }, kills: { total: 0 }, result: null, coins: 0 },
+      playing: { time: 0, score: 0, combo: { count: 0, timer: 0 }, kills: { total: 0 }, result: null, coins: 0, specialStreak: 0 },
       levelConfig: config,
       spawnPlan: this.#defSpawnPlan(),
       shake: 0,

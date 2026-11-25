@@ -29,10 +29,20 @@ function randomSpecialType() {
 /**
  * Tipo de um asteroide da arena: especial (com a chance dada) ou comum.
  * Antes de LEVEL_UNLOCK_SPECIALS só vem comum.
+ * Sequência (state.playing.specialStreak): logo depois de um especial a chance sobe para
+ * BALANCE.levels.special.followUp (pode vir uma dupla); depois de dois seguidos, o próximo é
+ * sempre comum e a sequência zera (nunca vêm três especiais seguidos).
  */
 function randomTypeAsteroids(config = state.levelConfig, specialChance = config.specialChance) {
   if (config.number < LEVEL_UNLOCK_SPECIALS) return "common";
-  return Math.random() < specialChance ? randomSpecialType() : "common";
+  const run = state.playing;
+  const streak = run?.specialStreak ?? 0;
+  const chance = streak >= 2 ? 0
+    : streak === 1 ? Math.max(specialChance, BALANCE.levels.special.followUp)
+    : specialChance;
+  const special = Math.random() < chance;
+  if (run) run.specialStreak = special ? streak + 1 : 0;
+  return special ? randomSpecialType() : "common";
 }
 
 // ============================================================
