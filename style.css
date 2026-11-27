@@ -2091,6 +2091,11 @@ button:disabled {
   justify-self: start;
 }
 
+/* Opções do toque logo após a lista de controles: respiro entre "Pausar" e "Tamanho" */
+.control-row + .volume-row {
+  margin-top: 18px;
+}
+
 .volume-row__label {
   display: flex;
   align-items: center;
