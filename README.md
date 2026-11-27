@@ -7,7 +7,7 @@ oficina.
 
 ## 🎮 Jogue agora
 
-**[kaikdandrade.github.io/RupturaEspacial](https://kaikdandrade.github.io/RupturaEspacial/)**
+**[kaikdandrade.github.io/ruptura_espacial/](https://kaikdandrade.github.io/ruptura_espacial/)**
 
 Roda direto no navegador pelo GitHub Pages, no PC, no celular ou no tablet. O progresso
 (centelhas, naves, melhorias, recorde, configurações) fica salvo no próprio navegador.
