@@ -88,6 +88,7 @@ function updateMenuUI() {
   if (shipPreview.getAttribute("src") !== ship.src) shipPreview.src = ship.src;
   shipPreview.alt = ship.name;
   shipButton.classList.toggle("ship-lock", !owned);
+  playShipButton.classList.toggle("is-locked", !owned); // (no CSS antigo era :has(.ship-lock))
   const shipButtonHTML = owned ? "Jogar" : `<img src="assets/icons/sparks.png" alt="" /> ${money(ship.value)}`;
   if (shipButton.__html !== shipButtonHTML) {
     shipButton.__html = shipButtonHTML;
@@ -227,6 +228,7 @@ function updateCompletedUI(result) {
   completeTotal.textContent = money(progress.total);
   completeScore.textContent = money(Math.floor(state.playing.score));
   completeRecord.hidden = !result.newRecord;
+  completeRecord.parentElement?.classList.toggle("has-record", !!result.newRecord); // card dourado
   completeBonus.textContent = `+${money(result.coins)}`;
   animateBar(completeProgressBar, 1);
 }
@@ -273,11 +275,17 @@ const musicVolumeInput = $("musicVolume");
 const sfxVolumeInput = $("sfxVolume");
 const muteToggle = $("muteToggle");
 
-/** Pinta a parte cheia do slider (--value) e escreve a % ao lado. */
-function renderRange(input, value) {
+/**
+ * Pinta a parte cheia do slider (--value) e escreve a % ao lado.
+ * @param {HTMLInputElement} input slider (valores em %: value × 100)
+ * @param {number} value valor atual (1 = 100%)
+ * @param {number} [min] menor valor do slider (para a parte cheia começar no início)
+ * @param {number} [max] maior valor
+ */
+function renderRange(input, value, min = 0, max = 1) {
   const percent = Math.round(value * 100);
   input.value = percent;
-  input.style.setProperty("--value", `${percent}%`);
+  input.style.setProperty("--value", `${Math.round(((value - min) / (max - min)) * 100)}%`);
   const output = input.parentElement?.querySelector("output");
   if (output) output.textContent = `${percent}%`;
 }

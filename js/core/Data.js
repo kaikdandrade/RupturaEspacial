@@ -20,6 +20,8 @@ class Data {
     shipUpgrades: [0, 1, 2, 3].map(() => ({ damage: 0, fireRate: 0, resistance: 0 })),
     kills: {},                                     // total derrotado por tipo: { common: 12, frozen: 3, ... }
     autoFire: false,                               // tiro automático (controles de toque)
+    // Controles de toque: tamanho (0,6 a 1,5), lado do joystick e modo (flutuante ou fixo)
+    touch: { scale: 1, side: "left", mode: "floating" },
     audio: { music: 0.7, sfx: 0.8, muted: false }, // volumes (0..1) e mudo
   };
 
@@ -29,7 +31,8 @@ class Data {
    * @returns {typeof Data.DEFAULT_SAVE}
    */
   load() {
-    const fresh = structuredClone(Data.DEFAULT_SAVE);
+    // Cópia profunda dos padrões (JSON em vez de structuredClone, que só existe no Chrome 98+)
+    const fresh = JSON.parse(JSON.stringify(Data.DEFAULT_SAVE));
     try {
       const raw = localStorage.getItem(Data.STORAGE_KEY);
       return raw ? { ...fresh, ...JSON.parse(raw) } : fresh;

@@ -1,23 +1,30 @@
 "use strict";
 
 /**
- * @file Controles de toque (celular e tablet).
+ * @file Controles de toque (celular e tablet) e as opções deles no glossário.
  *
- * - Movimento: joystick flutuante. Encostar o dedo em qualquer ponto da metade esquerda da arena
- *   cria o joystick ali mesmo; arrastar move a nave (quanto mais longe do centro, mais rápido).
- * - Tiro: botão redondo no canto inferior direito (segurar = atirar).
- * - AUTO: liga/desliga o tiro automático (fica salvo no save).
+ * - Movimento: joystick. No modo "flutuante" ele nasce onde o dedo encosta (no lado do joystick);
+ *   no modo "fixo" fica sempre no mesmo lugar. Arrastar move a nave (mais longe = mais rápido).
+ * - Tiro: botão redondo no canto oposto ao joystick (segurar = atirar).
+ * - AUTO: liga/desliga o tiro automático.
+ *
+ * Opções (salvas em SAVE.touch e SAVE.autoFire, ajustadas no glossário, aba Áudio e Controles):
+ *   scale: tamanho dos controles (0,6 a 1,5) · side: "left" | "right" (lado do joystick)
+ *   mode: "floating" | "fixed" · autoFire: tiro automático
  *
  * Os controles só aparecem durante a partida em aparelhos com toque. A nave lê o estado por
  * touchControls.move ({ x, y } de -1 a 1) e touchControls.firing (Player.update).
  */
 class TouchControls {
-  /** Distância (px) do centro do joystick até a borda: arrastar além disso = velocidade máxima. */
-  static STICK_RADIUS = 56;
+  /** Raio do joystick (px) no tamanho 100%: arrastar além disso = velocidade máxima. */
+  static BASE_RADIUS = 56;
   /** Abaixo dessa fração do raio o joystick é ignorado (evita a nave "escorregar" sozinha). */
   static DEAD_ZONE = 0.12;
-  /** Fração da largura da tela, a partir da esquerda, que aceita o joystick. */
+  /** Fração da largura da tela, a partir do lado do joystick, que aceita o joystick. */
   static STICK_ZONE = 0.55;
+  /** Limites do tamanho dos controles. */
+  static MIN_SCALE = 0.6;
+  static MAX_SCALE = 1.5;
 
   /** Direção do joystick: x e y de -1 a 1 (comprimento até 1). */
   move = { x: 0, y: 0 };
@@ -63,20 +70,53 @@ class TouchControls {
     this.#fireButton.addEventListener("pointercancel", press(false));
 
     this.#autoButton.addEventListener("pointerdown", (e) => e.stopPropagation());
-    this.#autoButton.addEventListener("click", () => {
-      SAVE.autoFire = !SAVE.autoFire;
-      DATA.save(SAVE);
-      this.#renderAuto();
-    });
+    this.#autoButton.addEventListener("click", () => this.setOption({ autoFire: !SAVE.autoFire }));
 
     // Segurar o dedo não abre menu de contexto / seleção de texto
     this.#root.addEventListener("contextmenu", (e) => e.preventDefault());
-    this.#renderAuto();
+    this.applySettings();
+  }
+
+  /** Opções atuais (com os valores padrão se o save for antigo). */
+  get settings() {
+    SAVE.touch = { scale: 1, side: "left", mode: "floating", ...SAVE.touch };
+    return SAVE.touch;
+  }
+
+  /** Raio do joystick no tamanho escolhido. */
+  get radius() {
+    return TouchControls.BASE_RADIUS * this.settings.scale;
   }
 
   /** A nave deve atirar? (botão pressionado ou tiro automático ligado) */
   get firing() {
     return this.#visible && (this.#firePressed || SAVE.autoFire);
+  }
+
+  /**
+   * Muda uma ou mais opções, salva e aplica na hora.
+   * @param {{ scale?: number, side?: string, mode?: string, autoFire?: boolean }} patch
+   */
+  setOption(patch) {
+    const { autoFire, ...touch } = patch;
+    if (autoFire !== undefined) SAVE.autoFire = autoFire;
+    if (touch.scale !== undefined) {
+      touch.scale = clamp(touch.scale, TouchControls.MIN_SCALE, TouchControls.MAX_SCALE);
+    }
+    Object.assign(this.settings, touch);
+    DATA.save(SAVE);
+    this.applySettings();
+  }
+
+  /** Aplica tamanho, lado e AUTO nos controles e atualiza as opções do glossário. */
+  applySettings() {
+    const { scale, side } = this.settings;
+    this.#root.style.setProperty("--touch-scale", scale);
+    this.#root.classList.toggle("is-right-stick", side === "right");
+    this.#autoButton.classList.toggle("is-on", !!SAVE.autoFire);
+    this.#autoButton.setAttribute("aria-pressed", String(!!SAVE.autoFire));
+    this.reset();
+    renderTouchSettings(this);
   }
 
   /** Mostra os controles só durante a partida, em aparelhos de toque. Chamado a cada quadro. */
@@ -94,9 +134,13 @@ class TouchControls {
     this.#firePressed = false;
     this.#fireButton.classList.remove("is-pressed");
     this.#setVector(0, 0);
-    this.#stick.classList.remove("is-active");
-    this.#stick.style.removeProperty("left");
-    this.#stick.style.removeProperty("top");
+    this.#releaseStick();
+  }
+
+  /** O ponto (relativo aos controles) está no lado do joystick? */
+  #inStickZone(x, width) {
+    const zone = width * TouchControls.STICK_ZONE;
+    return this.settings.side === "right" ? x >= width - zone : x <= zone;
   }
 
   #onStickDown(e) {
@@ -104,20 +148,29 @@ class TouchControls {
     const rect = this.#root.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    if (x > rect.width * TouchControls.STICK_ZONE) return; // lado direito: não é joystick
+    if (!this.#inStickZone(x, rect.width)) return;
     e.preventDefault();
     this.#root.setPointerCapture(e.pointerId);
     this.#stickPointer = e.pointerId;
-    this.#origin = { x, y };
-    this.#stick.style.left = `${x}px`;
-    this.#stick.style.top = `${y}px`;
     this.#stick.classList.add("is-active");
+
+    if (this.settings.mode === "fixed") {
+      // Fixo: o centro é a posição de descanso; o próprio toque já conta como direção
+      const s = this.#stick.getBoundingClientRect();
+      this.#origin = { x: s.left + s.width / 2 - rect.left, y: s.top + s.height / 2 - rect.top };
+      this.#onStickMove(e);
+    } else {
+      // Flutuante: o joystick nasce embaixo do dedo
+      this.#origin = { x, y };
+      this.#stick.style.left = `${x}px`;
+      this.#stick.style.top = `${y}px`;
+    }
   }
 
   #onStickMove(e) {
     if (e.pointerId !== this.#stickPointer) return;
     const rect = this.#root.getBoundingClientRect();
-    const R = TouchControls.STICK_RADIUS;
+    const R = this.radius;
     let dx = (e.clientX - rect.left - this.#origin.x) / R;
     let dy = (e.clientY - rect.top - this.#origin.y) / R;
     const length = Math.hypot(dx, dy);
@@ -132,6 +185,11 @@ class TouchControls {
     if (e.pointerId !== this.#stickPointer) return;
     this.#stickPointer = null;
     this.#setVector(0, 0);
+    this.#releaseStick();
+  }
+
+  /** Joystick volta para a posição de descanso. */
+  #releaseStick() {
     this.#stick.classList.remove("is-active");
     this.#stick.style.removeProperty("left");
     this.#stick.style.removeProperty("top");
@@ -139,16 +197,37 @@ class TouchControls {
 
   /** Atualiza a direção (com zona morta) e a bolinha do joystick. */
   #setVector(x, y) {
-    this.#knob.style.translate = `${x * TouchControls.STICK_RADIUS}px ${y * TouchControls.STICK_RADIUS}px`;
+    const R = this.radius;
+    this.#knob.style.transform = `translate(${x * R}px, ${y * R}px)`;
     const dead = Math.hypot(x, y) < TouchControls.DEAD_ZONE;
     this.move.x = dead ? 0 : x;
     this.move.y = dead ? 0 : y;
   }
+}
 
-  #renderAuto() {
-    this.#autoButton.classList.toggle("is-on", !!SAVE.autoFire);
-    this.#autoButton.setAttribute("aria-pressed", String(!!SAVE.autoFire));
+// ============================================================
+// OPÇÕES NO GLOSSÁRIO (aba Áudio e Controles)
+// ============================================================
+
+const touchScaleInput = $("touchScale");
+const touchAutoToggle = $("touchAutoToggle");
+const touchChoiceButtons = [...document.querySelectorAll("[data-touch-option]")];
+
+/** Mostra no glossário as opções salvas (tamanho, lado, modo e tiro automático). */
+function renderTouchSettings(controls) {
+  const { scale, side, mode } = controls.settings;
+  renderRange(touchScaleInput, scale, TouchControls.MIN_SCALE, TouchControls.MAX_SCALE);
+  for (const button of touchChoiceButtons) {
+    const value = button.dataset.touchOption === "side" ? side : mode;
+    button.setAttribute("aria-pressed", String(button.dataset.value === value));
   }
+  touchAutoToggle.setAttribute("aria-checked", String(!!SAVE.autoFire));
 }
 
 const touchControls = new TouchControls();
+
+touchScaleInput.addEventListener("input", () => touchControls.setOption({ scale: touchScaleInput.value / 100 }));
+touchAutoToggle.addEventListener("click", () => touchControls.setOption({ autoFire: !SAVE.autoFire }));
+for (const button of touchChoiceButtons) {
+  button.addEventListener("click", () => touchControls.setOption({ [button.dataset.touchOption]: button.dataset.value }));
+}

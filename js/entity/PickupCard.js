@@ -76,8 +76,7 @@ class PickupCard {
     return SpriteCache.shape(`card|${type}|${s}|${imageReady(img)}`, s + pad * 2, s + pad * 2, (c) => {
       const half = s / 2;
       const r = 12 * (s / PickupCard.SIZE);
-      c.beginPath();
-      c.roundRect(-half, -half, s, s, r);
+      roundedRectPath(-half, -half, s, s, r, c); // (roundRect nativo só no Chrome 99+)
       const gradient = c.createLinearGradient(0, -half, 0, half);
       gradient.addColorStop(0, "rgba(34, 48, 91, .98)");
       gradient.addColorStop(1, "rgba(9, 14, 35, .98)");

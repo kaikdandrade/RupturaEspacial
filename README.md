@@ -15,11 +15,13 @@ no próprio navegador.
 
 | Ação        | PC                        | Celular / tablet                              |
 | ----------- | ------------------------- | --------------------------------------------- |
-| Mover       | `W` `A` `S` `D` ou setas  | Arrastar o dedo no lado esquerdo da tela      |
+| Mover       | `W` `A` `S` `D` ou setas  | Joystick (arrastar o dedo no lado dele)       |
 | Atirar      | `Espaço`, `Enter` ou mouse | Segurar o botão vermelho ou ligar o **AUTO** |
 | Pausar      | `Esc` ou botão de pause   | Botão de pause no HUD                         |
 
-No celular o jogo também pausa sozinho ao trocar de aplicativo ou bloquear a tela.
+No celular o jogo também pausa sozinho ao trocar de aplicativo ou bloquear a tela. Tamanho dos
+controles, lado do joystick (canhotos), modo fixo ou flutuante e tiro automático são ajustáveis no
+glossário (aba Áudio e Controles).
 
 ## Como funciona
 
@@ -100,5 +102,7 @@ js/
 
 - HTML5 Canvas 2D
 - Web Audio API (música e efeitos sintetizados)
-- CSS moderno (nesting, container queries, `clamp`)
-- JavaScript (ES2022+, classes com campos privados), sem frameworks
+- CSS sem nesting e com reservas para recursos novos (container queries, `dvh`)
+- JavaScript (ES2022, classes com campos privados), sem frameworks
+
+Funciona em navegadores a partir de 2021–2022 (Chrome/Edge 88+, Safari 15.4+, Firefox 98+).

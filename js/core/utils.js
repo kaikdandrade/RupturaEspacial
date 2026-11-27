@@ -119,16 +119,20 @@ function viewport() {
   return VIEW;
 }
 
-/** Monta (sem desenhar) o caminho de um retângulo de cantos arredondados. */
-function roundedRectPath(x, y, w, h, r) {
+/**
+ * Monta (sem desenhar) o caminho de um retângulo de cantos arredondados.
+ * Faz o mesmo que context.roundRect(), que só existe a partir do Chrome 99.
+ * @param {CanvasRenderingContext2D} [context] contexto (padrão: o canvas do jogo)
+ */
+function roundedRectPath(x, y, w, h, r, context = ctx) {
   const rr = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + rr, y);
-  ctx.arcTo(x + w, y, x + w, y + h, rr);
-  ctx.arcTo(x + w, y + h, x, y + h, rr);
-  ctx.arcTo(x, y + h, x, y, rr);
-  ctx.arcTo(x, y, x + w, y, rr);
-  ctx.closePath();
+  context.beginPath();
+  context.moveTo(x + rr, y);
+  context.arcTo(x + w, y, x + w, y + h, rr);
+  context.arcTo(x + w, y + h, x, y + h, rr);
+  context.arcTo(x, y + h, x, y, rr);
+  context.arcTo(x, y, x + w, y, rr);
+  context.closePath();
 }
 
 // ============================================================

@@ -429,7 +429,7 @@
           </div>
         </article>
 
-        <h3 class="guide-section">Bosses <span class="guide-section-count" data-kills-category="boss">0</span></h3>
+        <h3 class="guide-section guide-section--boss">Bosses <span class="guide-section-count" data-kills-category="boss">0</span></h3>
         <article class="guide-card boss-card">
           <img src="assets/asteroids/bosses/resistance.png" alt="Boss Resistente">
           <div>
@@ -673,19 +673,43 @@
         <h3 class="guide-section">Controles <small class="guide-note">celular e tablet</small></h3>
         <div class="control-row">
           <span>Movimentar</span>
-          <p class="control-hint">Encoste e arraste o dedo no <b>lado esquerdo</b> da tela (joystick)</p>
+          <p class="control-hint">Encoste e arraste o dedo no <b>lado do joystick</b> da tela</p>
         </div>
         <div class="control-row">
           <span>Atirar</span>
-          <p class="control-hint">Segure o <b>botão vermelho</b> no canto direito</p>
-        </div>
-        <div class="control-row">
-          <span>Tiro automático</span>
-          <p class="control-hint">Toque em <b>AUTO</b>, acima do botão de tiro</p>
+          <p class="control-hint">Segure o <b>botão vermelho</b>, no lado oposto ao joystick</p>
         </div>
         <div class="control-row">
           <span>Pausar</span>
           <p class="control-hint">Botão de pause no canto superior direito</p>
+        </div>
+
+        <!-- Opções dos controles de toque (js/ui/touch.js, salvas em SAVE.touch) -->
+        <label class="volume-row">
+          <span class="volume-row__label">Tamanho</span>
+          <input id="touchScale" class="range" type="range" min="60" max="150" step="5" />
+          <output class="volume-row__value" for="touchScale">100%</output>
+        </label>
+        <div class="volume-row volume-row--choice">
+          <span class="volume-row__label">Joystick</span>
+          <div class="segmented" role="group" aria-label="Lado do joystick">
+            <button type="button" data-touch-option="side" data-value="left" aria-pressed="true">Esquerda</button>
+            <button type="button" data-touch-option="side" data-value="right" aria-pressed="false">Direita</button>
+          </div>
+        </div>
+        <div class="volume-row volume-row--choice">
+          <span class="volume-row__label">Modo</span>
+          <div class="segmented" role="group" aria-label="Modo do joystick">
+            <button type="button" data-touch-option="mode" data-value="floating" aria-pressed="true" title="Nasce onde o dedo encosta">Flutuante</button>
+            <button type="button" data-touch-option="mode" data-value="fixed" aria-pressed="false" title="Sempre no mesmo lugar">Fixo</button>
+          </div>
+        </div>
+        <div class="volume-row volume-row--switch">
+          <span class="volume-row__label">Tiro auto</span>
+          <button id="touchAutoToggle" class="switch" type="button" role="switch" aria-checked="false" aria-label="Tiro automático">
+            <span class="switch__knob"></span>
+          </button>
+          <span class="volume-row__value"></span>
         </div>
       </div>
       <button class="btn back-button mobile-back" data-back type="button">← Voltar</button>
